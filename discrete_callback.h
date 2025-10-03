@@ -1,5 +1,5 @@
 /* 
- * non_continuous_call.c++
+ * discrete_callback.h
  * DSP Program
  * 
  * Tiffany Liu
@@ -9,23 +9,27 @@
  * 
 */
 
-// Libraries / namespaces
+// Libraries
+#ifndef DISCRETE_CALLBACK_H
+#define DISCRETE_CALLBACK_H
+
 #include <portaudio.h>
 #include <cstdlib>
+#include <cmath>
 
 #include "types.h"
 
 using namespace std;
 
 // Global Variables
-AudioParams audioParams;
+extern AudioParams audioParams;
 
 // User Definitions
 #define SAMPLE_SILENCE  0.0f
-
 #define DELAY_BUFFER_SIZE ((audioParams.SAMPLE_RATE * audioParams.DELAY_MS) / 1000)
-SAMPLE delayBuffer[DELAY_BUFFER_SIZE];
-int delayIndex = 0;
+
+extern SAMPLE delayBuffer[DELAY_BUFFER_SIZE];
+extern int delayIndex;
 
 // Record callback
 static int recordCallback(const void *inputBuffer, void *outputBuffer,
@@ -36,7 +40,7 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
 {
     paTestData *data = (paTestData *)userData;
     const SAMPLE *rptr = (const SAMPLE *)inputBuffer;
-    SAMPLE *wptr = &data->recordedSamples[data->frameIndex * audioParams.NUM_CHANNELS];
+    SAMPLE *wptr = &data->recordedSamples[data->frameIndex * audioParams.IN_CHANNELS];
     unsigned long framesLeft = data->maxFrameIndex - data->frameIndex;
     int finished = (framesLeft < framesPerBuffer) ? paComplete : paContinue;
     unsigned long framesToCalc = (framesLeft < framesPerBuffer) ? framesLeft : framesPerBuffer;
@@ -60,14 +64,14 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
     return finished;
 }
 
-//playback function
+// Playback
 static int playCallback( const void *inputBuffer, void *outputBuffer,
                          unsigned long framesPerBuffer,
                          const PaStreamCallbackTimeInfo* timeInfo,
                          PaStreamCallbackFlags statusFlags,
                          void *userData){
     paTestData *data = (paTestData*)userData;
-    SAMPLE *rptr = &data->recordedSamples[data->frameIndex * audioParams.NUM_CHANNELS];
+    SAMPLE *rptr = &data->recordedSamples[data->frameIndex * audioParams.OUT_CHANNELS];
     SAMPLE *wptr = (SAMPLE*)outputBuffer;
     unsigned long framesLeft = data->maxFrameIndex - data->frameIndex;
     unsigned long framesToPlay = (framesLeft < framesPerBuffer) ? framesLeft : framesPerBuffer;
@@ -119,3 +123,5 @@ static int playCallback( const void *inputBuffer, void *outputBuffer,
     data->frameIndex += framesToPlay;
     return paContinue;
 }
+
+#endif // DISCRETE_CALLBACK_H
