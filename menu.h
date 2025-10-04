@@ -34,16 +34,16 @@ void menuFunction(EffectChoices& effectChoice){
                 cout << "Ending program..." << endl;
                 exit(0);
                 break;
-            case '1':                       //no effect
+            case '1':                       // no effect
                 effectChoice.norm = true;
                 validChoice = true;
                 break;
-            case '2':                       //tremolo
+            case '2':                       // tremolo
                 effectChoice.trem = true;
                 validChoice = true;
                 break;
             case '3':
-                effectChoice.delay = true;
+                effectChoice.delay = true;  // delay
                 validChoice = true;
                 break;
             default:
@@ -58,16 +58,16 @@ void menuFunction(EffectChoices& effectChoice){
                 cout << "Ending program..." << endl;
                 exit(0);
                 break;
-            case '1':                       //no effect
+            case '1':                       // no effect
                 effectChoice.norm = true;
                 validChoice = true;
                 break;
-            case '2':                       //tremolo
+            case '2':                       // tremolo
                 effectChoice.trem = true;
                 validChoice = true;
                 break;
             case '3':
-                effectChoice.delay = true;
+                effectChoice.delay = true;  // delay
                 validChoice = true;
                 break;
             default:

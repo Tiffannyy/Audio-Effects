@@ -45,7 +45,7 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
     int finished = (framesLeft < framesPerBuffer) ? paComplete : paContinue;
     unsigned long framesToCalc = (framesLeft < framesPerBuffer) ? framesLeft : framesPerBuffer;
 
-    (void)outputBuffer;  //Prevent unused variable warning
+    (void)outputBuffer;  // Prevent unused variable warning
     (void)timeInfo;
     (void)statusFlags;
     (void)userData;
@@ -76,34 +76,34 @@ static int playCallback( const void *inputBuffer, void *outputBuffer,
     unsigned long framesLeft = data->maxFrameIndex - data->frameIndex;
     unsigned long framesToPlay = (framesLeft < framesPerBuffer) ? framesLeft : framesPerBuffer;
 
-    (void) inputBuffer; //unused variables
+    (void) inputBuffer; // Unused variables
     (void) timeInfo;
     (void) statusFlags;
     (void) userData;
     
-    //for tremolo convolution
+    // For tremolo convolution
     int waveLen = audioParams.SAMPLE_RATE / audioParams.TREM_FREQ;
     SAMPLE sineWave[waveLen];
     for (int i = 0; i < waveLen; i++)
         sineWave[i] = sin(2.0 * audioParams.PI * i / waveLen);
     
-    //delay
+    // Delay
     SAMPLE drySignal, wetSignal, outputSample;
         
-    //playback        
+    // Playback        
     for (unsigned long i = 0; i < framesToPlay; i++) {
-        //normal
+        // Normal
         if (effectChoice.norm)
             *wptr++ = *rptr++;
-        //tremolo
+        // Tremolo
         else if (effectChoice.trem){
             *wptr++ = *rptr++ * sineWave[((int)(audioParams.tremPhase) % waveLen)];
             audioParams.tremPhase += 1.0;
             if (audioParams.tremPhase >= waveLen) {
-                audioParams.tremPhase = 0.0; //reset phase after wavelength
+                audioParams.tremPhase = 0.0; // reset phase after wavelength
             }
         }
-        //delay
+        // Delay
         else if (effectChoice.delay) {
             drySignal = *rptr++;
             wetSignal = delayBuffer[delayIndex] + drySignal;            //get rid of + drySignal to hear only delayed part.
@@ -112,7 +112,7 @@ static int playCallback( const void *inputBuffer, void *outputBuffer,
             delayIndex = (delayIndex + 1) % DELAY_BUFFER_SIZE;
             *wptr++ = outputSample;
         }
-        //others
+        // Others
         if (framesLeft < framesPerBuffer) {
             for (unsigned long i = framesLeft; i < framesPerBuffer; i++) {
                 *wptr++ = SAMPLE_SILENCE;  //Fill remaining buffer with silence

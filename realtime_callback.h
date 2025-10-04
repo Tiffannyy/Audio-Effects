@@ -5,7 +5,7 @@
  * Tiffany Liu
  * 5 June 2025
  * 
- * Description: Contains the callback function for realtime audio processing
+ * Description: Contains the callback function for realtime / continuous audio processing
  * 
 */
 
@@ -52,7 +52,8 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
         
         // tremolo effect
         else if (ud->effects->trem){
-            double tremolo = (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH * (0.5 * (1.0 + sin(ud->params->tremPhase)));
+            double tremolo =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
+                                * (0.5 * (1.0 + sin(ud->params->tremPhase)));
             
             ud->params->tremPhase += ud->tremIncrement;
 
