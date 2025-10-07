@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <portaudio.h>
-#include <string>
+#include <cstring>
 #include <ctime>
 
 #include "menu.h"
