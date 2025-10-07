@@ -12,6 +12,7 @@
 
 #ifndef TYPES_H
 #define TYPES_H
+#include <cmath>
 
 // User Defined Data
 typedef float SAMPLE;
