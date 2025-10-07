@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <portaudio.h>
-#include <string>
+#include <cstring>
 #include <ctime>
 
 #include "menu.h"
@@ -174,7 +174,7 @@ int main() {
         while ((c = getchar()) != '\n' && c != EOF) {}
         printf("Streaming... Press ENTER to stop program\n");
         getchar();
-        Pa_StopStream(inStream)
+        Pa_StopStream(inStream);
         Pa_CloseStream(inStream);
         return 0;
     }
