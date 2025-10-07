@@ -16,8 +16,8 @@ using namespace std;
 
 // User Definitions
 #define SAMPLE_SILENCE  0.0f
-#define DELAY_BUFFER_SIZE ((audioParams.SAMPLE_RATE * audioParams.DELAY_MS) / 1000)
 
+#include <cmath>
 
 // Callback Function
 static int streamCallback(const void *inputBuffer, void *outputBuffer,

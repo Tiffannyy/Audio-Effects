@@ -12,12 +12,11 @@
 #include <stdlib.h>
 #include <iostream>
 #include <portaudio.h>
-#include <string>
+#include <cstring>
 #include <ctime>
 
 #include "menu.h"
 #include "realtime_callback.h"
-#include "discrete_callback.h"
 #include "types.h"
 
 using namespace std;
@@ -27,12 +26,14 @@ EffectChoices effectChoice;
 AudioParams audioParams;
 
 // User Definitions
-#define FRAMES_PER_BUFFER 64
-#define NUM_SECONDS     5
+#define FRAMES_PER_BUFFER 16
 #define PA_SAMPLE_TYPE  paFloat32
 #define PRINTF_S_FORMAT "%.8f"
 #define CONTINUOUS 1                // 0 for 5s sample, 1 for continuous
-#define DEBUG 0                     // 1 to print debug info
+#define DEBUG 1                     // 1 to print debug info
+
+SAMPLE *delayBuffer = nullptr;
+int delayIndex = 0;
 
 // streamCallback prototype
 static int streamCallback(
@@ -61,13 +62,6 @@ int main() {
         printf("PortAudio initialization failed: %s\n", Pa_GetErrorText(err));
     return -1;
     }
-    
-    paTestData data;
-    int totalFrames;
-    int numSamples;
-    int numBytes;
-    SAMPLE max, val;
-    double average;
 
     //print i/o info if DEBUG 1
     #ifdef DEBUG
@@ -105,25 +99,11 @@ int main() {
     outputParameters.suggestedLatency =
         Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = NULL;
-    
-    // memory allocation
-    data.maxFrameIndex = totalFrames = NUM_SECONDS * audioParams.SAMPLE_RATE;
-    data.frameIndex = 0;
-    numSamples = totalFrames * audioParams.IN_CHANNELS;
-    numBytes = numSamples * sizeof(SAMPLE);
-    data.recordedSamples = (SAMPLE *)malloc(sizeof(SAMPLE) * data.maxFrameIndex * audioParams.IN_CHANNELS);
-    memset(data.recordedSamples, 0, sizeof(SAMPLE) * data.maxFrameIndex * audioParams.IN_CHANNELS);
-    if( data.recordedSamples == NULL ){
-        printf("Could not allocate record array.\n");
-        goto done;
-    }
-    // empty data
-    for(int i=0; i<numSamples; i++ ) {
-        data.recordedSamples[i] = 0;
-        data.recordedSamples[i] = 0;
-    }
-    if( err != paNoError ) goto done;
 
+    // setup user data
+    RtUserData userData;
+    userData.params = &audioParams;
+    userData.effects = &effectChoice;
 
     // record audio
     if (CONTINUOUS){
@@ -133,26 +113,25 @@ int main() {
         int sampleRate = AudioParams::SAMPLE_RATE;
         int delayBufferSize = (sampleRate * delayMs) / 1000; // frames
 
+        // remaining user data
+        userData.delayBufferSize = delayBufferSize;
+        userData.tremIncrement = 2.0 * audioParams.PI * audioParams.TREM_FREQ / (double)sampleRate;
+
         int pow2 = 1;
         while (pow2 < delayBufferSize) pow2 <<= 1;
         delayBufferSize = pow2;
 
         // allocate delay buffer
-        SAMPLE *delayBuffer = (SAMPLE*) malloc(sizeof(SAMPLE) * delayBufferSize);
+        delayBuffer = (SAMPLE*) malloc(sizeof(SAMPLE) * delayBufferSize);
         if (!delayBuffer) {
             fprintf(stderr, "Could not allocate delay buffer.\n");
             goto done;
         }
         memset(delayBuffer, 0, sizeof(SAMPLE) * delayBufferSize);
 
-        // setup user data
-        RtUserData userData;
-        userData.params = &audioParams;
-        userData.effects = &effectChoice;
+        // set delayBuffer and delayIndex
         userData.delayBuffer = delayBuffer;
-        userData.delayBufferSize = delayBufferSize;
-        userData.delayIndex = 0;
-        userData.tremIncrement = 2.0 * audioParams.PI * audioParams.TREM_FREQ / (double)sampleRate;
+        userData.delayIndex = delayIndex;
 
         // open stream
         err =  Pa_OpenStream(&inStream,
@@ -174,105 +153,14 @@ int main() {
         while ((c = getchar()) != '\n' && c != EOF) {}
         printf("Streaming... Press ENTER to stop program\n");
         getchar();
-        Pa_StopStream(inStream)
+        Pa_StopStream(inStream);
         Pa_CloseStream(inStream);
         return 0;
     }
 
-    // sample recording
-    else{
-        err = Pa_OpenDefaultStream(
-            &inStream,
-            audioParams.IN_CHANNELS,
-            0,
-            PA_SAMPLE_TYPE,
-            audioParams.SAMPLE_RATE,
-            FRAMES_PER_BUFFER,
-            recordCallback,
-            &data);
-
-        if(err != paNoError) goto done;
-        err = Pa_StartStream(inStream);
-        if(err != paNoError) goto done;
-        printf("\nRecording... \n"); fflush(stdout);
-
-        while((err = Pa_IsStreamActive(inStream)) == 1)
-        {
-            Pa_Sleep(1000);
-            printf("index = %d\n", data.frameIndex); fflush(stdout);
-        }
-        if(err < 0) goto done;
-        
-        // end recording process
-        Pa_StopStream(inStream);
-        Pa_CloseStream(inStream);
-    
-        // amplitude / debug
-        #ifdef DEBUG
-            printf("Recording complete.\n"); fflush(stdout);
-            max = 0;
-            average = 0.0;
-            for(int i=0; i<numSamples; i++)
-            {
-                val = data.recordedSamples[i];
-                if(val < 0) val = -val;
-                if(val > max)
-                {
-                    max = val;
-                }
-                average += val;
-            }
-
-            average = average / (double)numSamples;
-
-            printf("sample max amplitude = " PRINTF_S_FORMAT "\n", max );
-            printf("sample average = %lf\n", average );
-        #endif
-    }
-
-    data.frameIndex = 0;
-    
-    //playback
-    printf("\nNow playing back...\n"); fflush(stdout);
-    err = Pa_OpenDefaultStream(
-            &outStream,
-            0,
-            audioParams.OUT_CHANNELS,
-            PA_SAMPLE_TYPE,
-            audioParams.SAMPLE_RATE,
-            FRAMES_PER_BUFFER,
-            playCallback,
-            &data );
-    if( err != paNoError ) goto done;
-
-    if(outStream)
-    {
-        err = Pa_StartStream(outStream);
-        if(err != paNoError) goto done;
-        
-        printf("Waiting for playback to finish.\n"); fflush(stdout);
-
-        while( (err = Pa_IsStreamActive(outStream)) == 1) Pa_Sleep(100);
-        if(err < 0) goto done;
-        
-        err = Pa_CloseStream(outStream);
-        if(err != paNoError) goto done;
-        
-        printf("Done.\n"); fflush(stdout);
-    }
-    // end playback process
-    Pa_StopStream(outStream);
-    Pa_CloseStream(outStream);
-    
-    // Clean up program
+    // Clean up and exit program
  done:
     Pa_Terminate();
-
-    // free memory in case it wasn't freed 
-    if (data.recordedSamples != NULL) {
-        free(data.recordedSamples);
-        data.recordedSamples = NULL;    //safety measure
-    }
 
     // Error handling
     if (err != paNoError) {
