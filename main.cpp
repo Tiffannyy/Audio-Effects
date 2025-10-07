@@ -7,6 +7,10 @@
  * Description: Main file for DSP program. Point of access.
 */
 
+
+// TODO: Make a version without portaudio, using primarily ADC and DAC on stm32 board
+
+
 //Libraries
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,7 +178,7 @@ int main() {
         while ((c = getchar()) != '\n' && c != EOF) {}
         printf("Streaming... Press ENTER to stop program\n");
         getchar();
-        Pa_StopStream(inStream)
+        Pa_StopStream(inStream);
         Pa_CloseStream(inStream);
         return 0;
     }
