@@ -30,7 +30,7 @@ EffectChoices effectChoice;
 AudioParams audioParams;
 
 // User Definitions
-#define FRAMES_PER_BUFFER 16
+#define FRAMES_PER_BUFFER 2
 #define PA_SAMPLE_TYPE  paFloat32
 #define PRINTF_S_FORMAT "%.8f"
 #define CONTINUOUS 1                // 0 for 5s sample, 1 for continuous
@@ -69,19 +69,19 @@ int main() {
 
     //print i/o info if DEBUG 1
     #ifdef DEBUG
-        const PaDeviceInfo *inputInfo = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
-        const PaDeviceInfo *outputInfo = Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice());
+        const PaDeviceInfo *inputInfo = Pa_GetDeviceInfo(1);
+        const PaDeviceInfo *outputInfo = Pa_GetDeviceInfo(1);
 
-            printf("Input device: %s\n", inputInfo->name);
-            printf("Channel count: %d\n", inputInfo->maxInputChannels);
-            printf("Input sample rate: %f\n", inputInfo->defaultSampleRate);
-            printf("Output device: %s\n", outputInfo->name);
-            printf("Channel count: %d\n", outputInfo->maxOutputChannels);
-            printf("Output sample rate: %f\n", outputInfo->defaultSampleRate);
+        printf("Input device: %s\n", inputInfo->name);
+        printf("Channel count: %d\n", inputInfo->maxInputChannels);
+        printf("Input sample rate: %f\n", inputInfo->defaultSampleRate);
+        printf("Output device: %s\n", outputInfo->name);
+        printf("Channel count: %d\n", outputInfo->maxOutputChannels);
+	printf("Output sample rate: %f\n", outputInfo->defaultSampleRate);
     #endif
 
     // input parameters
-    inputParameters.device = Pa_GetDefaultInputDevice();
+    inputParameters.device = 1;
     if (inputParameters.device == paNoDevice) {
         fprintf(stderr, "Error: No default input device.\n");
         goto done;
@@ -89,11 +89,11 @@ int main() {
     inputParameters.channelCount = audioParams.IN_CHANNELS;
     inputParameters.sampleFormat = PA_SAMPLE_TYPE;
     inputParameters.suggestedLatency =
-        Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
+        Pa_GetDeviceInfo(inputParameters.device)->defaultHighInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     // output parameters
-    outputParameters.device = Pa_GetDefaultOutputDevice();
+    outputParameters.device = 1;
     if (outputParameters.device == paNoDevice) {
         fprintf(stderr, "Error: No default output device.\n");
         goto done;
@@ -101,7 +101,7 @@ int main() {
     outputParameters.channelCount = audioParams.OUT_CHANNELS;
     outputParameters.sampleFormat = PA_SAMPLE_TYPE;
     outputParameters.suggestedLatency =
-        Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
+        Pa_GetDeviceInfo(outputParameters.device)->defaultHighOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = NULL;
 
     // setup user data
@@ -154,8 +154,8 @@ int main() {
         
         // wait until user exits
         int c;
+	printf("Streaming... Press ENTER to stop program\n");
         while ((c = getchar()) != '\n' && c != EOF) {}
-        printf("Streaming... Press ENTER to stop program\n");
         getchar();
         Pa_StopStream(inStream);
         Pa_CloseStream(inStream);

@@ -38,8 +38,8 @@ struct AudioParams{
     const double PI     = 3.14159265358979323846;
     double tremPhase    = 0.1;
     static constexpr int DELAY_MS       = 500;         // Delay in milliseconds
-    static constexpr double FEEDBACK    = 0.7;        // Feedback amount (0 to 1)   -  for delay
-    static constexpr int IN_CHANNELS   = 1;
+    static constexpr double FEEDBACK    = 0.4;        // Feedback amount (0 to 1)   -  for delay
+    static constexpr int IN_CHANNELS   = 2;
     static constexpr int OUT_CHANNELS  = 2;
     static constexpr int SAMPLE_RATE    = 44100;
 };
