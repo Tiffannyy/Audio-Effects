@@ -1,14 +1,14 @@
 # makefile for AudioEffects program
 
 # Compiler
-CP = clang++
+CP = g++
 
 # Flags
-CFLAGS = -std=c++17
+CFLAGS = -std=c++11
 LDFLAGS = -lportaudio
 
 # Target Executable
-TARGET = AudioEffects
+TARGET = start
 TARGETSRC = main.cpp
 
 

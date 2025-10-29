@@ -24,7 +24,8 @@ void menuFunction(EffectChoices& effectChoice){
     cout << "(0) Exit Program" << endl; 
     cout << "(1) No Effects" << endl;
     cout << "(2) Tremolo" << endl;
-    cout << "(3) Delay" << endl;                  
+    cout << "(3) Delay" << endl;    
+    cout << "(4) Reverb" << endl;            
 //    cout << "(4) Volume Adjuster" << endl;
     cout << "Enter the integer value of the effect you would like to apply: ";
     cin >> userChoice;
@@ -44,6 +45,10 @@ void menuFunction(EffectChoices& effectChoice){
                 break;
             case '3':
                 effectChoice.delay = true;  // delay
+                validChoice = true;
+                break;
+            case '4':
+                effectChoice.reverb = true; // reverb
                 validChoice = true;
                 break;
             default:

@@ -14,10 +14,7 @@
 //Libraries
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
 #include <portaudio.h>
-#include <cstring>
-#include <ctime>
 
 #include "menu.h"
 #include "realtime_callback.h"
@@ -28,16 +25,14 @@ using namespace std;
 // Global Variables
 EffectChoices effectChoice;
 AudioParams audioParams;
+RtUserData userData;
 
 // User Definitions
-#define FRAMES_PER_BUFFER 2
+#define FRAMES_PER_BUFFER 64
 #define PA_SAMPLE_TYPE  paFloat32
 #define PRINTF_S_FORMAT "%.8f"
 #define CONTINUOUS 1                // 0 for 5s sample, 1 for continuous
 #define DEBUG 1                     // 1 to print debug info
-
-SAMPLE *delayBuffer = nullptr;
-int delayIndex = 0;
 
 // streamCallback prototype
 static int streamCallback(
@@ -64,24 +59,24 @@ int main() {
     PaError err = Pa_Initialize();
     if (err != paNoError) {
         printf("PortAudio initialization failed: %s\n", Pa_GetErrorText(err));
-    return -1;
+        return -1;
     }
 
-    //print i/o info if DEBUG 1
+    // print i/o info if DEBUG 1
     #ifdef DEBUG
-        const PaDeviceInfo *inputInfo = Pa_GetDeviceInfo(1);
-        const PaDeviceInfo *outputInfo = Pa_GetDeviceInfo(1);
+        const PaDeviceInfo *inputInfo = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
+        const PaDeviceInfo *outputInfo = Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice());
 
         printf("Input device: %s\n", inputInfo->name);
         printf("Channel count: %d\n", inputInfo->maxInputChannels);
         printf("Input sample rate: %f\n", inputInfo->defaultSampleRate);
         printf("Output device: %s\n", outputInfo->name);
         printf("Channel count: %d\n", outputInfo->maxOutputChannels);
-	printf("Output sample rate: %f\n", outputInfo->defaultSampleRate);
+	    printf("Output sample rate: %f\n", outputInfo->defaultSampleRate);
     #endif
 
     // input parameters
-    inputParameters.device = 1;
+    inputParameters.device = Pa_GetDefaultInputDevice();         // Pa_GetDefaultInputDevice();
     if (inputParameters.device == paNoDevice) {
         fprintf(stderr, "Error: No default input device.\n");
         goto done;
@@ -93,7 +88,7 @@ int main() {
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     // output parameters
-    outputParameters.device = 1;
+    outputParameters.device = Pa_GetDefaultOutputDevice();      // Pa_GetDefaultOutputDevice();
     if (outputParameters.device == paNoDevice) {
         fprintf(stderr, "Error: No default output device.\n");
         goto done;
@@ -105,7 +100,6 @@ int main() {
     outputParameters.hostApiSpecificStreamInfo = NULL;
 
     // setup user data
-    RtUserData userData;
     userData.params = &audioParams;
     userData.effects = &effectChoice;
 
@@ -115,33 +109,39 @@ int main() {
 
         int delayMs = AudioParams::DELAY_MS;
         int sampleRate = AudioParams::SAMPLE_RATE;
-        int delayBufferSize = (sampleRate * delayMs) / 1000; // frames
 
         // remaining user data
-        userData.delayBufferSize = delayBufferSize;
         userData.tremIncrement = 2.0 * audioParams.PI * audioParams.TREM_FREQ / (double)sampleRate;
 
-        int pow2 = 1;
-        while (pow2 < delayBufferSize) pow2 <<= 1;
-        delayBufferSize = pow2;
+        // set delay and reverb params
+        userData.delayIndex = 0;
 
-        // allocate delay buffer
-        delayBuffer = (SAMPLE*) malloc(sizeof(SAMPLE) * delayBufferSize);
-        if (!delayBuffer) {
-            fprintf(stderr, "Could not allocate delay buffer.\n");
-            goto done;
+        userData.delaySize = max(1, delayMs * sampleRate / 1000);
+        userData.reverbSize = AudioParams::SAMPLE_RATE;                    // max 1 second delay buffer
+
+        userData.delayBuffer.resize(userData.delaySize, 0.0f);
+        userData.reverbBuffer.resize(userData.reverbSize, 0.0f);
+
+        // TODO: Adjust values for reverb
+        float tapsMs[AudioParams::REVERB_TAPS] = {40.0f, 50.0f, 60.0f, 80.0f, 110.0f};
+
+        for (int i = 0; i < AudioParams::REVERB_TAPS; ++i){
+            userData.reverbDelay[i] = tapsMs[i] * sampleRate / 1000;
+            userData.reverbGain[i] = expf(-tapsMs[i] / AudioParams::reverbDecay);
+            userData.reverbIndex[i] = 0;
         }
-        memset(delayBuffer, 0, sizeof(SAMPLE) * delayBufferSize);
 
-        // set delayBuffer and delayIndex
-        userData.delayBuffer = delayBuffer;
-        userData.delayIndex = delayIndex;
-
+        userData.reverbGain[0] = 0.4f;
+        userData.reverbGain[1] = 0.3f;
+        userData.reverbGain[2] = 0.3f;
+        userData.reverbGain[3] = 0.3f;
+        userData.reverbGain[4] = 0.2f;
+        
         // open stream
         err =  Pa_OpenStream(&inStream,
                              &inputParameters,
                              &outputParameters,
-                             audioParams.SAMPLE_RATE,
+                             sampleRate,
                              FRAMES_PER_BUFFER,
                              0,
                              streamCallback,
@@ -153,13 +153,14 @@ int main() {
         if (err != paNoError) goto done;
         
         // wait until user exits
+        printf("Streaming... Press ENTER to stop program\n");
         int c;
-	printf("Streaming... Press ENTER to stop program\n");
         while ((c = getchar()) != '\n' && c != EOF) {}
         getchar();
+
         Pa_StopStream(inStream);
         Pa_CloseStream(inStream);
-        return 0;
+        goto done;
     }
 
     // Clean up and exit program

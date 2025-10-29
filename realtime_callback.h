@@ -68,23 +68,51 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
         
         // delay effect
         else if (ud->effects->delay){
-            SAMPLE delayedSample = ud->delayBuffer[ud->delayIndex];
+            SAMPLE delayedSample = SAMPLE_SILENCE;
+
+            if (!ud->delayBuffer.empty())
+                delayedSample = ud->delayBuffer[ud->delayIndex];
+
+            // store current input sample in delay buffer
+            ud->delayBuffer[ud->delayIndex] = inputSample + delayedSample * ud->params->FEEDBACK;
             
             // Mix original and delayed signals
             SAMPLE outputSample =   (1.0 - ud->params->MIX) * inputSample
                                     + ud->params->MIX * delayedSample;
             
-            // Store current input sample in delay buffer
-            ud->delayBuffer[ud->delayIndex] = inputSample + delayedSample * ud->params->FEEDBACK;
-            
             // Increment and wrap delay index
-            ud->delayIndex = (ud->delayIndex + 1) % ud->delayBufferSize;
+            ud->delayIndex = (ud->delayIndex + 1) % ud->delaySize;
             
             if (outputSample > 1.0f)  outputSample = 1.0f;
             if (outputSample < -1.0f) outputSample = -1.0f;
 
             *out++ = outputSample;  // left
             *out++ = outputSample;  // right
+        }
+
+        // reverb
+        else if (ud->effects->reverb){
+            SAMPLE outputSample = SAMPLE_SILENCE;
+
+            for(int tap = 0; tap < AudioParams::REVERB_TAPS; ++tap){
+                int i = (ud->reverbIndex[tap] + ud->reverbSize - ud->reverbDelay[tap]) % ud->reverbSize;
+                SAMPLE delayedSample = ud->reverbBuffer[i];
+
+                outputSample += delayedSample * ud->reverbGain[tap];
+
+                // update buffer with input + feedback
+                ud->reverbBuffer[ud->reverbIndex[tap]] = inputSample + delayedSample * ud->params->reverbDecay;
+
+                ud->reverbIndex[tap] = (ud->reverbIndex[tap] + 1) % ud->reverbSize;
+            }
+
+            outputSample = (1.0f - ud->params->MIX) * inputSample + ud->params->MIX * outputSample;
+
+            if (outputSample > 1.0f) outputSample = 1.0f;
+            if (outputSample < -1.0f) outputSample = -1.0f;
+
+            *out++ = outputSample;
+            *out++ = outputSample;
         }
     }
     return paContinue;
