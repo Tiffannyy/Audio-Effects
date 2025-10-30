@@ -10,7 +10,6 @@
 
 // TODO: Make a version without portaudio, using primarily ADC and DAC on stm32 board
 
-
 //Libraries
 #include <stdio.h>
 #include <stdlib.h>
@@ -157,6 +156,13 @@ int main() {
         int c;
         while ((c = getchar()) != '\n' && c != EOF) {}
         getchar();
+
+        menuFunction(effectChoice);
+
+        userData.effects->norm      = false;
+        userData.effects->trem      = false;
+        userData.effects->delay     = false;
+        userData.effects->reverb    = false;
 
         Pa_StopStream(inStream);
         Pa_CloseStream(inStream);
