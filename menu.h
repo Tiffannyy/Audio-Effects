@@ -17,7 +17,7 @@
 using namespace std;
 
 // Menu function
-void menuFunction(EffectChoices& effectChoice){
+bool menuFunction(EffectChoices& effectChoice){
     bool validChoice = false;
     char userChoice;
     cout << "*------ Audio Effects Program ------*\n" << "Effects Options:\n";
@@ -33,7 +33,7 @@ void menuFunction(EffectChoices& effectChoice){
     switch (userChoice){
             case '0':
                 cout << "Ending program..." << endl;
-                exit(0);
+                return false; // request graceful exit to caller
                 break;
             case '1':                       // no effect
                 effectChoice.norm = true;
@@ -61,7 +61,7 @@ void menuFunction(EffectChoices& effectChoice){
         switch (userChoice){
             case '0':
                 cout << "Ending program..." << endl;
-                exit(0);
+                return false; // request graceful exit to caller
                 break;
             case '1':                       // no effect
                 effectChoice.norm = true;
@@ -80,5 +80,5 @@ void menuFunction(EffectChoices& effectChoice){
         }
       
     }
-    return;
+    return true;
 }

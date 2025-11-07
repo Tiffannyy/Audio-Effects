@@ -42,7 +42,9 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
     }
 
     for(unsigned long i = 0; i < framesPerBuffer; i++){
-        SAMPLE inputSample = *in++; // mono input
+        SAMPLE left = *in++;
+        SAMPLE right = *in++;
+        SAMPLE inputSample = 0.5f * (left + right);
         
         // no effect
         if (ud->effects->norm){
