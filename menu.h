@@ -16,6 +16,8 @@
 
 using namespace std;
 
+
+
 // Menu function
 void menuFunction(EffectChoices& effectChoice){
     bool validChoice = false;
@@ -26,6 +28,7 @@ void menuFunction(EffectChoices& effectChoice){
     cout << "(2) Tremolo" << endl;
     cout << "(3) Delay" << endl;    
     cout << "(4) Reverb" << endl;            
+    cout << "(5) Bitcrush" << endl;
 //    cout << "(4) Volume Adjuster" << endl;
     cout << "Enter the integer value of the effect you would like to apply: ";
     cin >> userChoice;
@@ -51,6 +54,10 @@ void menuFunction(EffectChoices& effectChoice){
                 effectChoice.reverb = true; // reverb
                 validChoice = true;
                 break;
+            case '5':
+                effectChoice.bitcrush = true;
+                validChoice = true;
+                break;
             default:
                 break;
         }
@@ -73,6 +80,14 @@ void menuFunction(EffectChoices& effectChoice){
                 break;
             case '3':
                 effectChoice.delay = true;  // delay
+                validChoice = true;
+                break;
+            case '4':
+                effectChoice.reverb = true; // reverb
+                validChoice = true;
+                break;
+            case '5':
+                effectChoice.bitcrush = true; // bitcrush
                 validChoice = true;
                 break;
             default:

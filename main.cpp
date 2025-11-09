@@ -163,6 +163,7 @@ int main() {
         userData.effects->trem      = false;
         userData.effects->delay     = false;
         userData.effects->reverb    = false;
+        userData.effects->bitcrush  = false;
 
         Pa_StopStream(inStream);
         Pa_CloseStream(inStream);

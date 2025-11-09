@@ -9,15 +9,16 @@
  * 
 */
 
+
 #ifndef REALTIME_CALLBACK_H
 #define REALTIME_CALLBACK_H
 
+#include <cmath>
 using namespace std;
 
 // User Definitions
 #define SAMPLE_SILENCE  0.0f
 
-#include <cmath>
 
 // Callback Function
 static int streamCallback(const void *inputBuffer, void *outputBuffer,
@@ -33,6 +34,7 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
     (void) timeinfo; // Prevent unused variable warnings.
     (void) statusFlags;
 
+
     if (inputBuffer == NULL){
         for(unsigned long i = 0; i < framesPerBuffer; i++){
             *out++ = SAMPLE_SILENCE;  // left
@@ -41,16 +43,19 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
         return paContinue;
     }
 
+    
     for(unsigned long i = 0; i < framesPerBuffer; i++){
+
         SAMPLE inputSample = *in++; // mono input
         
-        // no effect
+        // No effect
         if (ud->effects->norm){
             *out++ = inputSample;  // left
             *out++ = inputSample;  // right
         }
         
-        // tremolo effect
+
+        // Tremolo effect
         else if (ud->effects->trem){
             double tremolo =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
                                 * (0.5 * (1.0 + sin(ud->params->tremPhase)));
@@ -66,7 +71,8 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
             *out++ = inputSample * tremolo;  // right
         }
         
-        // delay effect
+
+        // Delay effect
         else if (ud->effects->delay){
             SAMPLE delayedSample = SAMPLE_SILENCE;
 
@@ -90,7 +96,8 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
             *out++ = outputSample;  // right
         }
 
-        // reverb
+
+        // Reverb
         else if (ud->effects->reverb){
             SAMPLE outputSample = SAMPLE_SILENCE;
 
@@ -114,6 +121,41 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
             *out++ = outputSample;
             *out++ = outputSample;
         }
+
+
+        // Bitcrush
+        else if (ud->effects->bitcrush) {
+            // inputSample
+            SAMPLE outputSample = SAMPLE_SILENCE;
+
+            // Calculate number of samples to hold
+            double sampleCount = ud->params->SAMPLE_RATE / ud->params->DOWNSAMPLE_RATE;
+
+            // Perform downsampling
+            if (ud->bitcrushCount >= sampleCount) {
+                // If bitcrush counter exceeds sample count, decrement counter & store new sample
+                ud->bitcrushCount -= sampleCount;
+                ud->bitcrushSample = inputSample;
+                outputSample = inputSample;
+            } else {
+                // Else, increment counter and reuse stored sample
+                ud->bitcrushCount++;
+                outputSample = ud->bitcrushSample;
+            }
+
+            // Perform quantization
+            double amplitudeStep = 1.0 / pow(2, ud->params->BIT_DEPTH);
+            int quantizedValue = outputSample / amplitudeStep;
+            outputSample = (double) quantizedValue / pow(2, ud->params->BIT_DEPTH);
+
+            // Apply mix amount
+            outputSample = (1.0f - ud->params->MIX) * inputSample + ud->params->MIX * outputSample;
+
+            *out++ = outputSample;
+            *out++ = outputSample;
+        }
+
+
     }
     return paContinue;
 }
