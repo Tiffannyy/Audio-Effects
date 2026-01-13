@@ -33,7 +33,7 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
         
         // no effect
         if (ud->effects->norm){
-            *out++ = inputSample;  // left
+            *out++ = 0.5f * 440;//inputSample;  // left
             *out++ = inputSample;  // right
         }
         

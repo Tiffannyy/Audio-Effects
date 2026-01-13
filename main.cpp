@@ -33,7 +33,6 @@ RtUserData userData;
 #define FRAMES_PER_BUFFER 256
 #define PRINTF_S_FORMAT "%.8f"
 #define CONTINUOUS 1                // 0 for 5s sample, 1 for continuous
-#define DEBUG 1                     // 1 to print debug info
 
 //main function
 int main() {
@@ -45,27 +44,16 @@ int main() {
 
     snd_pcm_hw_params_t *params;
 
-    // // print i/o info if DEBUG
-    // #ifdef DEBUG
-    //     const PaDeviceInfo *inputInfo = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
-    //     const PaDeviceInfo *outputInfo = Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice());
-
-    //     printf("Input device: %s\n", inputInfo->name);
-    //     printf("Channel count: %d\n", inputInfo->maxInputChannels);
-    //     printf("Input sample rate: %f\n", inputInfo->defaultSampleRate);
-    //     printf("Output device: %s\n", outputInfo->name);
-    //     printf("Channel count: %d\n", outputInfo->maxOutputChannels);
-    //     printf("Output sample rate: %f\n", outputInfo->defaultSampleRate);
-    // #endif
-
     // open PCM for input and output
-    // NOTE: can change default name to specific device
-    err = snd_pcm_open(&inHandle, "default", SND_PCM_STREAM_CAPTURE, 0);
+    // NOTE: can change default name to specific device here
+    const char* DEVICE_NAME = "hw:0,0";
+
+    err = snd_pcm_open(&inHandle, DEVICE_NAME, SND_PCM_STREAM_CAPTURE, 0);
     if (err < 0) {
         fprintf(stderr, "Error opening input PCM device: %s\n", snd_strerror(err));
         return err;
     }
-    err = snd_pcm_open(&outHandle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+    err = snd_pcm_open(&outHandle, DEVICE_NAME, SND_PCM_STREAM_PLAYBACK, 0);
     if (err < 0) {
         fprintf(stderr, "Error opening output PCM device: %s\n", snd_strerror(err));
         snd_pcm_close(inHandle);
@@ -80,7 +68,7 @@ int main() {
     snd_pcm_hw_params_any(inHandle, params);
     snd_pcm_hw_params_set_access(inHandle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
     snd_pcm_hw_params_set_format(inHandle, params, SND_PCM_FORMAT_FLOAT_LE);
-    snd_pcm_hw_params_set_channels(inHandle, params, AudioParams::NUM_CHANNELS);
+    snd_pcm_hw_params_set_channels(inHandle, params, AudioParams::IN_CHANNELS);
     snd_pcm_hw_params_set_rate(inHandle, params, audioParams.SAMPLE_RATE, 0);
     snd_pcm_hw_params_set_period_size_near(inHandle, params, &period, 0);
     snd_pcm_hw_params_set_buffer_size_near(inHandle, params, &buffer);
@@ -98,7 +86,7 @@ int main() {
     snd_pcm_hw_params_any(outHandle, params);
     snd_pcm_hw_params_set_access(outHandle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
     snd_pcm_hw_params_set_format(outHandle, params, SND_PCM_FORMAT_FLOAT_LE);
-    snd_pcm_hw_params_set_channels(outHandle, params, AudioParams::NUM_CHANNELS);
+    snd_pcm_hw_params_set_channels(outHandle, params, AudioParams::OUT_CHANNELS);
     snd_pcm_hw_params_set_rate(outHandle, params, audioParams.SAMPLE_RATE, 0);
     snd_pcm_hw_params_set_period_size_near(outHandle, params, &period, 0);
     snd_pcm_hw_params_set_buffer_size_near(outHandle, params, &buffer);
@@ -157,8 +145,8 @@ int main() {
 
         bool streaming = true;
 
-        SAMPLE inputBuffer[FRAMES_PER_BUFFER * AudioParams::NUM_CHANNELS];
-        SAMPLE outputBuffer[FRAMES_PER_BUFFER * AudioParams::NUM_CHANNELS];
+        SAMPLE inputBuffer[FRAMES_PER_BUFFER * AudioParams::OUT_CHANNELS];
+        SAMPLE outputBuffer[FRAMES_PER_BUFFER * AudioParams::OUT_CHANNELS];
 
         while (streaming){
             snd_pcm_sframes_t framesRead = snd_pcm_readi(inHandle, inputBuffer, FRAMES_PER_BUFFER);

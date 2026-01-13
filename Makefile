@@ -5,7 +5,7 @@ CP = g++
 
 # Flags
 CFLAGS = -std=c++11
-LDFLAGS = -lportaudio
+LDFLAGS = -lasound
 
 # Target Executable
 TARGET = start
