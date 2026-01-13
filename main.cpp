@@ -10,10 +10,13 @@
 //Libraries
 #include <stdio.h>
 #include <stdlib.h>
-#include <portaudio.h>
+// #include <portaudio.h>
+#include <alsa/asoundlib.h>
 #include <limits>
 #include <string>
 #include <iostream>
+#include <poll.h>
+#include <unistd.h>
 
 #include "menu.h"
 #include "realtime_callback.h"
@@ -27,73 +30,86 @@ AudioParams audioParams;
 RtUserData userData;
 
 // User Definitions
-#define FRAMES_PER_BUFFER 128
-#define PA_SAMPLE_TYPE  paFloat32
+#define FRAMES_PER_BUFFER 256
 #define PRINTF_S_FORMAT "%.8f"
 #define CONTINUOUS 1                // 0 for 5s sample, 1 for continuous
 #define DEBUG 1                     // 1 to print debug info
-
-// streamCallback prototype
-static int streamCallback(
-    const void *input, 
-    void *output,
-    unsigned long frameCount,
-    const PaStreamCallbackTimeInfo* timeInfo,
-    PaStreamCallbackFlags statusFlags,
-    void *userData
-);
 
 //main function
 int main() {
 
     // Declare stream parameters
-    PaStreamParameters  inputParameters,
-                        outputParameters;
-    PaStream *inStream = NULL;
+    int err;
+    snd_pcm_t *inHandle;
+    snd_pcm_t *outHandle;
 
-    // Initialize PortAudio once
-    PaError err = Pa_Initialize();
-    if (err != paNoError) {
-        printf("PortAudio initialization failed: %s\n", Pa_GetErrorText(err));
-        return -1;
+    snd_pcm_hw_params_t *params;
+
+    // // print i/o info if DEBUG
+    // #ifdef DEBUG
+    //     const PaDeviceInfo *inputInfo = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
+    //     const PaDeviceInfo *outputInfo = Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice());
+
+    //     printf("Input device: %s\n", inputInfo->name);
+    //     printf("Channel count: %d\n", inputInfo->maxInputChannels);
+    //     printf("Input sample rate: %f\n", inputInfo->defaultSampleRate);
+    //     printf("Output device: %s\n", outputInfo->name);
+    //     printf("Channel count: %d\n", outputInfo->maxOutputChannels);
+    //     printf("Output sample rate: %f\n", outputInfo->defaultSampleRate);
+    // #endif
+
+    // open PCM for input and output
+    // NOTE: can change default name to specific device
+    err = snd_pcm_open(&inHandle, "default", SND_PCM_STREAM_CAPTURE, 0);
+    if (err < 0) {
+        fprintf(stderr, "Error opening input PCM device: %s\n", snd_strerror(err));
+        return err;
+    }
+    err = snd_pcm_open(&outHandle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+    if (err < 0) {
+        fprintf(stderr, "Error opening output PCM device: %s\n", snd_strerror(err));
+        snd_pcm_close(inHandle);
+        return err;
     }
 
-    // print i/o info if DEBUG
-    #ifdef DEBUG
-        const PaDeviceInfo *inputInfo = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
-        const PaDeviceInfo *outputInfo = Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice());
-
-        printf("Input device: %s\n", inputInfo->name);
-        printf("Channel count: %d\n", inputInfo->maxInputChannels);
-        printf("Input sample rate: %f\n", inputInfo->defaultSampleRate);
-        printf("Output device: %s\n", outputInfo->name);
-        printf("Channel count: %d\n", outputInfo->maxOutputChannels);
-        printf("Output sample rate: %f\n", outputInfo->defaultSampleRate);
-    #endif
+    snd_pcm_uframes_t period = FRAMES_PER_BUFFER;
+    snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * 4;
 
     // input parameters
-    inputParameters.device = Pa_GetDefaultInputDevice();
-    if (inputParameters.device == paNoDevice) {
-        fprintf(stderr, "Error: No default input device.\n");
-        goto done;
+    snd_pcm_hw_params_alloca(&params);
+    snd_pcm_hw_params_any(inHandle, params);
+    snd_pcm_hw_params_set_access(inHandle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    snd_pcm_hw_params_set_format(inHandle, params, SND_PCM_FORMAT_FLOAT_LE);
+    snd_pcm_hw_params_set_channels(inHandle, params, AudioParams::NUM_CHANNELS);
+    snd_pcm_hw_params_set_rate(inHandle, params, audioParams.SAMPLE_RATE, 0);
+    snd_pcm_hw_params_set_period_size_near(inHandle, params, &period, 0);
+    snd_pcm_hw_params_set_buffer_size_near(inHandle, params, &buffer);
+
+    err = snd_pcm_hw_params(inHandle, params);
+    if (err < 0) {
+        fprintf(stderr, "Error setting input PCM parameters: %s\n", snd_strerror(err));
+        snd_pcm_close(inHandle);
+        snd_pcm_close(outHandle);
+        return err;
     }
-    inputParameters.channelCount = audioParams.IN_CHANNELS;
-    inputParameters.sampleFormat = PA_SAMPLE_TYPE;
-    inputParameters.suggestedLatency =
-        Pa_GetDeviceInfo(inputParameters.device)->defaultHighInputLatency;
-    inputParameters.hostApiSpecificStreamInfo = NULL;
 
     // output parameters
-    outputParameters.device = Pa_GetDefaultOutputDevice();
-    if (outputParameters.device == paNoDevice) {
-        fprintf(stderr, "Error: No default output device.\n");
-        goto done;
+    snd_pcm_hw_params_alloca(&params);
+    snd_pcm_hw_params_any(outHandle, params);
+    snd_pcm_hw_params_set_access(outHandle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    snd_pcm_hw_params_set_format(outHandle, params, SND_PCM_FORMAT_FLOAT_LE);
+    snd_pcm_hw_params_set_channels(outHandle, params, AudioParams::NUM_CHANNELS);
+    snd_pcm_hw_params_set_rate(outHandle, params, audioParams.SAMPLE_RATE, 0);
+    snd_pcm_hw_params_set_period_size_near(outHandle, params, &period, 0);
+    snd_pcm_hw_params_set_buffer_size_near(outHandle, params, &buffer);
+
+    err = snd_pcm_hw_params(outHandle, params);
+    if (err < 0) {
+        fprintf(stderr, "Error setting output PCM parameters: %s\n", snd_strerror(err));
+        snd_pcm_close(inHandle);
+        snd_pcm_close(outHandle);
+        return err;
     }
-    outputParameters.channelCount = audioParams.OUT_CHANNELS;
-    outputParameters.sampleFormat = PA_SAMPLE_TYPE;
-    outputParameters.suggestedLatency =
-        Pa_GetDeviceInfo(outputParameters.device)->defaultHighOutputLatency;
-    outputParameters.hostApiSpecificStreamInfo = NULL;
 
     // setup user data pointer
     userData.params = &audioParams;
@@ -123,7 +139,7 @@ int main() {
         float tapsMs[AudioParams::REVERB_TAPS] = {40.0f, 50.0f, 60.0f, 80.0f, 110.0f};
         for (int i = 0; i < AudioParams::REVERB_TAPS; ++i){
             userData.reverbDelay[i] = tapsMs[i] * sampleRate / 1000;
-            userData.reverbGain[i] = expf(-tapsMs[i] / AudioParams::reverbDecay);
+            userData.reverbGain[i] = expf(-tapsMs[i] / audioParams.reverbDecay);
             userData.reverbIndex[i] = 0;
         }
 
@@ -133,30 +149,58 @@ int main() {
         userData.reverbGain[3] = 0.3f;
         userData.reverbGain[4] = 0.2f;
 
-        // open stream
-        err =  Pa_OpenStream(&inStream,
-                             &inputParameters,
-                             &outputParameters,
-                             sampleRate,
-                             FRAMES_PER_BUFFER,
-                             0,
-                             streamCallback,
-                             &userData);
-
-        if (err != paNoError) goto done;
-
-        err = Pa_StartStream(inStream);
-        if (err != paNoError) goto done;
-
         // wait until user stops this session; then return to menu
         printf("Streaming... Press ENTER to stop and return to menu\n");
-        // Clear any leftover input from previous std::cin >> calls
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::string line;
-        std::getline(std::cin, line);
 
-        Pa_StopStream(inStream);
-        Pa_CloseStream(inStream);
+        snd_pcm_prepare(inHandle);
+        snd_pcm_prepare(outHandle);
+
+        bool streaming = true;
+
+        SAMPLE inputBuffer[FRAMES_PER_BUFFER * AudioParams::NUM_CHANNELS];
+        SAMPLE outputBuffer[FRAMES_PER_BUFFER * AudioParams::NUM_CHANNELS];
+
+        while (streaming){
+            snd_pcm_sframes_t framesRead = snd_pcm_readi(inHandle, inputBuffer, FRAMES_PER_BUFFER);
+
+            if (framesRead < 0){
+                snd_pcm_prepare(inHandle);
+                continue;
+            }
+
+            // call processing function, previously callback
+            processBlock(
+                inputBuffer,
+                outputBuffer,
+                framesRead,
+                &userData
+            );
+
+            snd_pcm_sframes_t framesWritten = snd_pcm_writei(
+                outHandle,
+                outputBuffer,
+                framesRead
+            );
+
+            if (framesWritten < 0){
+                snd_pcm_prepare(outHandle);
+                continue;
+            }
+            // check if user pressed ENTER to stop streaming
+            struct pollfd pfds;
+            pfds.fd = STDIN_FILENO;
+            pfds.events = POLLIN;
+
+            if (poll(&pfds, 1, 0) > 0){
+                char c;
+                read(STDIN_FILENO, &c, 1);
+                if (c == '\n')
+                    streaming = false;
+            }
+        }
+
+        snd_pcm_drain(inHandle);
+        snd_pcm_drain(outHandle);
 
         // reset effect flags so menu starts clean next time
         effectChoice = EffectChoices();
@@ -166,17 +210,6 @@ int main() {
         // loop back to menu
     }
 
-    // Clean up and exit program
- done:
-    Pa_Terminate();
-
-    // Error handling
-    if (err != paNoError) {
-        fprintf(stderr, "An error occurred while using the PortAudio stream\n");
-        fprintf(stderr, "Error number: %d\n", err);
-        fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(err));
-        err = 1; 
-    }
-    
-    return err;
+    snd_pcm_close(inHandle);
+    snd_pcm_close(outHandle);
 }

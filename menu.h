@@ -14,8 +14,6 @@
 
 #include "types.h"
 
-using namespace std;
-
 // Menu function
 bool menuFunction(EffectChoices& effectChoice){
     bool validChoice = false;

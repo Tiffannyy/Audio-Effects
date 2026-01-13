@@ -12,34 +12,19 @@
 #ifndef REALTIME_CALLBACK_H
 #define REALTIME_CALLBACK_H
 
-using namespace std;
+#include <cmath>
 
 // User Definitions
 #define SAMPLE_SILENCE  0.0f
 
-#include <cmath>
 
 // Callback Function
-static int streamCallback(const void *inputBuffer, void *outputBuffer,
+static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
                      unsigned long framesPerBuffer,
-                     const PaStreamCallbackTimeInfo* timeinfo,
-                     PaStreamCallbackFlags statusFlags,
-                     void *userData){
-                
-    SAMPLE *out = (SAMPLE*)outputBuffer;
-    const SAMPLE *in = (const SAMPLE*)inputBuffer;
-    RtUserData *ud = (RtUserData*) userData;
-    
-    (void) timeinfo; // Prevent unused variable warnings.
-    (void) statusFlags;
+                     RtUserData* ud){
 
-    if (inputBuffer == NULL){
-        for(unsigned long i = 0; i < framesPerBuffer; i++){
-            *out++ = SAMPLE_SILENCE;  // left
-            *out++ = SAMPLE_SILENCE;  // right
-        }
-        return paContinue;
-    }
+    SAMPLE *out = outputBuffer;
+    const SAMPLE *in = inputBuffer;
 
     for(unsigned long i = 0; i < framesPerBuffer; i++){
         SAMPLE left = *in++;
@@ -116,7 +101,11 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
             *out++ = outputSample;
             *out++ = outputSample;
         }
+
+        else {
+            *out++ = inputSample;
+            *out++ = inputSample;
+        }
     }
-    return paContinue;
 }
 #endif //REALTIME_CALLBACK_H
