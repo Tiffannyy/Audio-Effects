@@ -24,6 +24,7 @@ bool menuFunction(EffectChoices& effectChoice){
     std::cout << "(2) Tremolo" << std::endl;
     std::cout << "(3) Delay" << std::endl;    
     std::cout << "(4) Reverb" << std::endl;            
+    std::cout << "(5) Bitcrush" << std::endl;
 //    std::cout << "(4) Volume Adjuster" << std::endl;
     std::cout << "Enter the integer value of the effect you would like to apply: ";
     std::cin >> userChoice;
@@ -49,6 +50,10 @@ bool menuFunction(EffectChoices& effectChoice){
                 effectChoice.reverb = true; // reverb
                 validChoice = true;
                 break;
+            case '5':
+                effectChoice.bitcrush = true;
+                validChoice = true;
+                break;
             default:
                 break;
         }
@@ -71,6 +76,14 @@ bool menuFunction(EffectChoices& effectChoice){
                 break;
             case '3':
                 effectChoice.delay = true;  // delay
+                validChoice = true;
+                break;
+            case '4':
+                effectChoice.reverb = true; // reverb
+                validChoice = true;
+                break;
+            case '5':
+                effectChoice.bitcrush = true; // bitcrush
                 validChoice = true;
                 break;
             default:

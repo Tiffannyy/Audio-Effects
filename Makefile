@@ -11,11 +11,10 @@ LDFLAGS = -lasound
 TARGET = start
 TARGETSRC = main.cpp
 
-
 all: $(TARGET)
 
 $(TARGET): $(TARGETSRC)
-	$(CP) $(CFLAGS) $(TARGETSRC) -o $(TARGET) $(LDFLAGS)
+	$(CP) $(CFLAGS) $(TARGETSRC) -o $(TARGET) $(LDPATH) $(LDFLAGS)
 
 clean:
 	rm -f $(TARGET) *.o
