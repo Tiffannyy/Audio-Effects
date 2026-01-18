@@ -17,7 +17,7 @@
 #include <vector>
 
 // User Defined Data
-typedef float SAMPLE;
+typedef int16_t SAMPLE;
 
 
 struct paTestData{
@@ -60,9 +60,8 @@ struct AudioParams{
     int BIT_DEPTH       = 8;        // Amount of bits to "quantize" sample amplitude
 
     const double PI     = 3.14159265358979323846;
-    static constexpr int IN_CHANNELS   = 1;
-    static constexpr int OUT_CHANNELS  = 2;
-    static constexpr int SAMPLE_RATE   = 44100;
+    static constexpr int CHANNELS = 2;
+    static constexpr unsigned int SAMPLE_RATE   = 48000;
 };
 
 
@@ -72,12 +71,12 @@ struct RtUserData {
     EffectChoices *effects;
 
     // Delay
-    std::vector<SAMPLE> delayBuffer;
+    std::vector<float> delayBuffer;
     int delayIndex;
     int delaySize;
 
     // Reverb
-    std::vector<SAMPLE> reverbBuffer;
+    std::vector<float> reverbBuffer;
     int   reverbSize;
     int   reverbIndex[AudioParams::REVERB_TAPS];
     int   reverbDelay[AudioParams::REVERB_TAPS];     // delay in milliseconds for reverb
