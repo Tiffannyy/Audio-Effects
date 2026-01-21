@@ -108,6 +108,8 @@ int main(){
 	userData.reverbIndex[i] = 0;
     }
 
+    assert(ud->delayBuffer.size() == ud->delaySize);
+
     // Main loop: show menu, stream, then return to menu until user exits
     while (true) {
         bool keepRunning = menuFunction(effectChoice);

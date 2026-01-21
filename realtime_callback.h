@@ -49,12 +49,13 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
 
         // Tremolo effect
         else if (ud->effects->trem){
-            double trem =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
-                                * (0.5 * (1.0 + sin(ud->params->tremPhase)));
+            int i = (int)(ud->params->tremPhase * (LUT_SIZE / (2.0f * M_PI))) & (LUT_SIZE - 1);
+            float trem =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
+                                * (0.5 * (1.0 + sineLUT[i]));
             
             ud->params->tremPhase += ud->tremIncrement;
 
-            if (ud->params->tremPhase >= 2.0 * ud->params->PI) ud->params->tremPhase -= 2.0 * ud->params->PI;
+            if (ud->params->tremPhase >= 2.0 * M_PI) ud->params->tremPhase -= 2.0 * M_PI;
         
             outFloat = inFloat * trem; 
         }
@@ -64,8 +65,7 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
         else if (ud->effects->delay){
             float delayedSample = SAMPLE_SILENCE;
 
-            if (!ud->delayBuffer.empty())
-                delayedSample = ud->delayBuffer[ud->delayIndex];
+            delayedSample = ud->delayBuffer[ud->delayIndex];
 
             // store current input sample in delay buffer
             ud->delayBuffer[ud->delayIndex] = inFloat + delayedSample * ud->params->FEEDBACK;
@@ -75,7 +75,9 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
                         + ud->params->MIX * delayedSample;
             
             // Increment and wrap delay index
-            ud->delayIndex = (ud->delayIndex + 1) % ud->delaySize;
+            ud->delayIndex++;
+            if (ud->delayIndex >= ud->delaySize)
+                ud->delayIndex = 0;
         }
 
 
@@ -92,7 +94,9 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
                 // update buffer with input + feedback
                 ud->reverbBuffer[ud->reverbIndex[tap]] = inFloat + delayedSample * ud->params->reverbDecay;
 
-                ud->reverbIndex[tap] = (ud->reverbIndex[tap] + 1) % ud->reverbSize;
+                ud->reverbIndex[tap]++;
+                if (ud->reverbIndex[tap] >= reverbSize)
+                    ud->reverbIndex[tap] = 0;
             }
 
             outFloat = (1.0f - ud->params->MIX) * inFloat + ud->params->MIX * outReverb;
@@ -104,7 +108,7 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
             float outBitcrush = SAMPLE_SILENCE;
 
             // Calculate number of samples to hold
-            double sampleCount = ud->params->SAMPLE_RATE / ud->params->DOWNSAMPLE_RATE;
+            float sampleCount = ud->params->SAMPLE_RATE / ud->params->DOWNSAMPLE_RATE;
 
             // Perform downsampling
             if (ud->bitcrushCount >= sampleCount) {
@@ -119,10 +123,8 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
             }
 
             // Perform quantization
-            double amplitudeStep = 1.0 / pow(2, ud->params->BIT_DEPTH);
-            int quantizedValue = outBitcrush / amplitudeStep;
-            outBitcrush = (double) quantizedValue / pow(2, ud->params->BIT_DEPTH);
-
+            int quantizedValue = (int)outBitcrush / ud->bitcrushStep;
+            outBitcrush = quantizedValue * ud->bitcrushStep;
             // Apply mix amount
             outFloat = (1.0f - ud->params->MIX) * inFloat + ud->params->MIX * outBitcrush;
         }
