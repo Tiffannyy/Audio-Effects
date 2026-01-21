@@ -8,6 +8,7 @@
 # 29 October 2025
 
 import sys
+from parameters import *
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
@@ -23,20 +24,9 @@ from PyQt5.QtWidgets import (
     QSystemTrayIcon,
     QAction,
     QMenu,
+    QSlider,
+    QGroupBox,
 )
-
-
-class EffectPanel(QWidget):
-    "PLACEHOLDER PANEL"
-    # TODO: Populate with actual effect controls
-
-    def __init__(self, name: str):
-        super().__init__()
-        layout = QVBoxLayout()
-        label = QLabel(f"{name} effect settings go here.")
-        label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
-        self.setLayout(layout)
 
 
 class Window(QMainWindow):
@@ -111,7 +101,6 @@ class Window(QMainWindow):
         self.showMinimized()
         event.ignore()
         '''
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
