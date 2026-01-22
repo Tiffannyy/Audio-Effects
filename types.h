@@ -40,7 +40,7 @@ struct EffectChoices{
 // Parameters to pass to callback functions
 struct AudioParams{
 
-    float MIX           = 0.3;      // Mix between original and delayed signals
+    float MIX           = 0.5;      // Mix between original and delayed signals
 
     // Tremolo
     float TREM_FREQ     = 4.0;      // tremolo frequency (Hz). lower the freq, the slower the tremolo effect vice versa
@@ -57,9 +57,10 @@ struct AudioParams{
 
     // Bitcrush
     int DOWNSAMPLE_RATE = 12000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
-    int BIT_DEPTH       = 8;        // Amount of bits to "quantize" sample amplitude
+    static constexpr int BIT_DEPTH       = 3;        // Amount of bits to "quantize" sample amplitude
+    static constexpr float BITCRUSH_STEP = 1.0f / (1 << BIT_DEPTH);
 
-    const float PI     = M_PI;
+    static constexpr int IN_CHANNELS = 1;
     static constexpr int CHANNELS = 2;
     static constexpr unsigned int SAMPLE_RATE   = 48000;
 };
@@ -71,10 +72,13 @@ struct RtUserData {
     EffectChoices *effects;
 
     // Sin
-    constexpr int LUT_SIZE = 1024;      // look up table, less expensive than calling sin every iteration
+    static constexpr int LUT_SIZE = 1024;      // look up table, less expensive than calling sin every iteration
     float sineLUT[LUT_SIZE];
-    for (int i = 0; i < LUT_SIZE; i++)
-        sineLUT[i] = sinf(2.0f * M_PI * i / LUT_SIZE);
+    
+    RtUserData(){
+    	for (int i = 0; i < LUT_SIZE; i++)
+    	    sineLUT[i] = sinf(2.0f * M_PI * i / LUT_SIZE);
+    }
 
     // Delay
     std::vector<float> delayBuffer;
@@ -90,10 +94,8 @@ struct RtUserData {
 
     // Bitcrush
     //float sampleCount    = params->SAMPLE_RATE
-    float bitcrushCount  = 0.0;
+    int bitcrushCount  = 0;
     float bitcrushSample = 0.0f;
-    float bitcrushStep = 1.0f / (1 << ud->params->BIT_DEPTH);
-
 
     float tremIncrement;   // precomputed 2*pi*f / sampleRate
 };

@@ -30,17 +30,14 @@ inline SAMPLE toSample(float val){
 
 
 // Callback Function
-static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
+static inline void processBlock(const SAMPLE* in, SAMPLE* out,
                      unsigned long framesPerBuffer,
                      RtUserData* ud){
 
-    SAMPLE *out = outputBuffer;
-    const SAMPLE *in = inputBuffer;
-
     for(unsigned long i = 0; i < framesPerBuffer; i++){
         SAMPLE inL = *in++;
-	SAMPLE inR = *in++;
-	float inFloat = toFloat((inL + inR) / 2.0);
+//	SAMPLE inR = *in++;
+	float inFloat =  toFloat(inL);	//toFloat((inL + inR) / 2.0);
 	float outFloat = inFloat;
         
         // No effect
@@ -49,9 +46,9 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
 
         // Tremolo effect
         else if (ud->effects->trem){
-            int i = (int)(ud->params->tremPhase * (LUT_SIZE / (2.0f * M_PI))) & (LUT_SIZE - 1);
+            int j = (int)(ud->params->tremPhase * (ud->LUT_SIZE / (2.0f * M_PI))) & (ud->LUT_SIZE - 1);
             float trem =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
-                                * (0.5 * (1.0 + sineLUT[i]));
+                                * (0.5 * (1.0 + ud->sineLUT[j]));
             
             ud->params->tremPhase += ud->tremIncrement;
 
@@ -84,58 +81,54 @@ static inline void processBlock(const SAMPLE* inputBuffer, SAMPLE* outputBuffer,
         // Reverb
         else if (ud->effects->reverb){
             float outReverb = SAMPLE_SILENCE;
+	    float feedbackSum = 0.0f;
 
-            for(int tap = 0; tap < AudioParams::REVERB_TAPS; ++tap){
-                int i = (ud->reverbIndex[tap] + ud->reverbSize - ud->reverbDelay[tap]) % ud->reverbSize;
-                float delayedSample = ud->reverbBuffer[i];
-
+            for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
+                int j = (ud->reverbIndex[tap] + ud->reverbSize - ud->reverbDelay[tap]) % ud->reverbSize;
+                float delayedSample = ud->reverbBuffer[j];
                 outReverb += delayedSample * ud->reverbGain[tap];
 
                 // update buffer with input + feedback
-                ud->reverbBuffer[ud->reverbIndex[tap]] = inFloat + delayedSample * ud->params->reverbDecay;
+                ud->reverbBuffer[ud->reverbIndex[0]] = inFloat + feedbackSum * ud->params->reverbDecay;
+	    }
 
-                ud->reverbIndex[tap]++;
-                if (ud->reverbIndex[tap] >= reverbSize)
-                    ud->reverbIndex[tap] = 0;
-            }
+	    ud->reverbBuffer[ud->reverbIndex[0]] = inFloat + feedbackSum * ud->params->reverbDecay;
 
-            outFloat = (1.0f - ud->params->MIX) * inFloat + ud->params->MIX * outReverb;
+	    for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
+		ud->reverbIndex[tap]++;
+		if (ud->reverbIndex[tap] > ud->reverbSize)
+		    ud->reverbIndex[tap] = 0;
+	    }
+
+	    outFloat = (1.0f - ud->params->MIX) * inFloat + ud->params->MIX * outReverb;
         }
 
         // Bitcrush
         else if (ud->effects->bitcrush) {
-            // inputSample
-            float outBitcrush = SAMPLE_SILENCE;
-
             // Calculate number of samples to hold
             float sampleCount = ud->params->SAMPLE_RATE / ud->params->DOWNSAMPLE_RATE;
 
             // Perform downsampling
             if (ud->bitcrushCount >= sampleCount) {
                 // If bitcrush counter exceeds sample count, decrement counter & store new sample
-                ud->bitcrushCount -= sampleCount;
+                ud->bitcrushCount = 0;
                 ud->bitcrushSample = inFloat;
-                outBitcrush = inFloat;
-            } else {
-                // Else, increment counter and reuse stored sample
-                ud->bitcrushCount++;
-                outBitcrush = ud->bitcrushSample;
             }
+		
+	    float outBitcrush = ud->bitcrushSample;
+	    float step = ud->params->BITCRUSH_STEP;
 
             // Perform quantization
-            int quantizedValue = (int)outBitcrush / ud->bitcrushStep;
-            outBitcrush = quantizedValue * ud->bitcrushStep;
-            // Apply mix amount
+	    outBitcrush = roundf(outBitcrush / step) * step;
+	    // Apply mix amount
             outFloat = (1.0f - ud->params->MIX) * inFloat + ud->params->MIX * outBitcrush;
         }
 
         else
             outFloat = inFloat;
 
-	SAMPLE outSample = toSample(outFloat);
-
-	*out++ = outSample;
-	*out++ = outSample;
+	*out++ = toSample(outFloat);
+	*out++ = toSample(outFloat);
     }
 }
 #endif //REALTIME_CALLBACK_H
