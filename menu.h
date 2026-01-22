@@ -14,25 +14,24 @@
 
 #include "types.h"
 
-using namespace std;
-
 // Menu function
 bool menuFunction(EffectChoices& effectChoice){
     bool validChoice = false;
     char userChoice;
-    cout << "*------ Audio Effects Program ------*\n" << "Effects Options:\n";
-    cout << "(0) Exit Program" << endl; 
-    cout << "(1) No Effects" << endl;
-    cout << "(2) Tremolo" << endl;
-    cout << "(3) Delay" << endl;    
-    cout << "(4) Reverb" << endl;            
-//    cout << "(4) Volume Adjuster" << endl;
-    cout << "Enter the integer value of the effect you would like to apply: ";
-    cin >> userChoice;
+    std::cout << "*------ Audio Effects Program ------*\n" << "Effects Options:\n";
+    std::cout << "(0) Exit Program" << std::endl; 
+    std::cout << "(1) No Effects" << std::endl;
+    std::cout << "(2) Tremolo" << std::endl;
+    std::cout << "(3) Delay" << std::endl;    
+    std::cout << "(4) Reverb" << std::endl;            
+    std::cout << "(5) Bitcrush" << std::endl;
+//    std::cout << "(4) Volume Adjuster" << std::endl;
+    std::cout << "Enter the integer value of the effect you would like to apply: ";
+    std::cin >> userChoice;
     
     switch (userChoice){
             case '0':
-                cout << "Ending program..." << endl;
+                std::cout << "Ending program..." << std::endl;
                 return false; // request graceful exit to caller
                 break;
             case '1':                       // no effect
@@ -51,16 +50,20 @@ bool menuFunction(EffectChoices& effectChoice){
                 effectChoice.reverb = true; // reverb
                 validChoice = true;
                 break;
+            case '5':
+                effectChoice.bitcrush = true;
+                validChoice = true;
+                break;
             default:
                 break;
         }
     
     while (!validChoice){
-    cout << "Enter a valid option: ";
-    cin >> userChoice; 
+    std::cout << "Enter a valid option: ";
+    std::cin >> userChoice; 
         switch (userChoice){
             case '0':
-                cout << "Ending program..." << endl;
+                std::cout << "Ending program..." << std::endl;
                 return false; // request graceful exit to caller
                 break;
             case '1':                       // no effect
@@ -73,6 +76,14 @@ bool menuFunction(EffectChoices& effectChoice){
                 break;
             case '3':
                 effectChoice.delay = true;  // delay
+                validChoice = true;
+                break;
+            case '4':
+                effectChoice.reverb = true; // reverb
+                validChoice = true;
+                break;
+            case '5':
+                effectChoice.bitcrush = true; // bitcrush
                 validChoice = true;
                 break;
             default:

@@ -9,114 +9,126 @@
  * 
 */
 
+
 #ifndef REALTIME_CALLBACK_H
 #define REALTIME_CALLBACK_H
 
-using namespace std;
+#include <cmath>
 
 // User Definitions
 #define SAMPLE_SILENCE  0.0f
 
-#include <cmath>
+inline float toFloat(SAMPLE val){
+	return val / 32768.0f;
+}
+
+inline SAMPLE toSample(float val){
+	if (val > 1.0f) val = 1.0f;
+	if (val < -1.0f) val = -1.0f;
+	return (SAMPLE)(val * 32767.0f);
+}
+
 
 // Callback Function
-static int streamCallback(const void *inputBuffer, void *outputBuffer,
+static inline void processBlock(const SAMPLE* in, SAMPLE* out,
                      unsigned long framesPerBuffer,
-                     const PaStreamCallbackTimeInfo* timeinfo,
-                     PaStreamCallbackFlags statusFlags,
-                     void *userData){
-                
-    SAMPLE *out = (SAMPLE*)outputBuffer;
-    const SAMPLE *in = (const SAMPLE*)inputBuffer;
-    RtUserData *ud = (RtUserData*) userData;
-    
-    (void) timeinfo; // Prevent unused variable warnings.
-    (void) statusFlags;
-
-    if (inputBuffer == NULL){
-        for(unsigned long i = 0; i < framesPerBuffer; i++){
-            *out++ = SAMPLE_SILENCE;  // left
-            *out++ = SAMPLE_SILENCE;  // right
-        }
-        return paContinue;
-    }
+                     RtUserData* ud){
 
     for(unsigned long i = 0; i < framesPerBuffer; i++){
-        SAMPLE left = *in++;
-        SAMPLE right = *in++;
-        SAMPLE inputSample = 0.5f * (left + right);
+        SAMPLE inL = *in++;
+//	SAMPLE inR = *in++;
+	float inFloat =  toFloat(inL);	//toFloat((inL + inR) / 2.0);
+	float outFloat = inFloat;
         
-        // no effect
-        if (ud->effects->norm){
-            *out++ = inputSample;  // left
-            *out++ = inputSample;  // right
-        }
-        
-        // tremolo effect
+        // No effect
+        if (ud->effects->norm)
+            outFloat = inFloat;
+
+        // Tremolo effect
         else if (ud->effects->trem){
-            double tremolo =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
-                                * (0.5 * (1.0 + sin(ud->params->tremPhase)));
+            int j = (int)(ud->params->tremPhase * (ud->LUT_SIZE / (2.0f * M_PI))) & (ud->LUT_SIZE - 1);
+            float trem =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
+                                * (0.5 * (1.0 + ud->sineLUT[j]));
             
             ud->params->tremPhase += ud->tremIncrement;
 
-            if (ud->params->tremPhase >= 2.0 * ud->params->PI) ud->params->tremPhase -= 2.0 * ud->params->PI;
-            
-            if (inputSample > 1.0f)  inputSample = 1.0f;
-            if (inputSample < -1.0f) inputSample = -1.0f;
-
-            *out++ = inputSample * tremolo;  // left
-            *out++ = inputSample * tremolo;  // right
+            if (ud->params->tremPhase >= 2.0 * M_PI) ud->params->tremPhase -= 2.0 * M_PI;
+        
+            outFloat = inFloat * trem; 
         }
         
-        // delay effect
-        else if (ud->effects->delay){
-            SAMPLE delayedSample = SAMPLE_SILENCE;
 
-            if (!ud->delayBuffer.empty())
-                delayedSample = ud->delayBuffer[ud->delayIndex];
+        // Delay effect
+        else if (ud->effects->delay){
+            float delayedSample = SAMPLE_SILENCE;
+
+            delayedSample = ud->delayBuffer[ud->delayIndex];
 
             // store current input sample in delay buffer
-            ud->delayBuffer[ud->delayIndex] = inputSample + delayedSample * ud->params->FEEDBACK;
+            ud->delayBuffer[ud->delayIndex] = inFloat + delayedSample * ud->params->FEEDBACK;
             
             // Mix original and delayed signals
-            SAMPLE outputSample =   (1.0 - ud->params->MIX) * inputSample
-                                    + ud->params->MIX * delayedSample;
+            outFloat = (1.0 - ud->params->MIX) * inFloat
+                        + ud->params->MIX * delayedSample;
             
             // Increment and wrap delay index
-            ud->delayIndex = (ud->delayIndex + 1) % ud->delaySize;
-            
-            if (outputSample > 1.0f)  outputSample = 1.0f;
-            if (outputSample < -1.0f) outputSample = -1.0f;
-
-            *out++ = outputSample;  // left
-            *out++ = outputSample;  // right
+            ud->delayIndex++;
+            if (ud->delayIndex >= ud->delaySize)
+                ud->delayIndex = 0;
         }
 
-        // reverb
+
+        // Reverb
         else if (ud->effects->reverb){
-            SAMPLE outputSample = SAMPLE_SILENCE;
+            float outReverb = SAMPLE_SILENCE;
+	    float feedbackSum = 0.0f;
 
-            for(int tap = 0; tap < AudioParams::REVERB_TAPS; ++tap){
-                int i = (ud->reverbIndex[tap] + ud->reverbSize - ud->reverbDelay[tap]) % ud->reverbSize;
-                SAMPLE delayedSample = ud->reverbBuffer[i];
-
-                outputSample += delayedSample * ud->reverbGain[tap];
+            for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
+                int j = (ud->reverbIndex[tap] + ud->reverbSize - ud->reverbDelay[tap]) % ud->reverbSize;
+                float delayedSample = ud->reverbBuffer[j];
+                outReverb += delayedSample * ud->reverbGain[tap];
 
                 // update buffer with input + feedback
-                ud->reverbBuffer[ud->reverbIndex[tap]] = inputSample + delayedSample * ud->params->reverbDecay;
+                ud->reverbBuffer[ud->reverbIndex[0]] = inFloat + feedbackSum * ud->params->reverbDecay;
+	    }
 
-                ud->reverbIndex[tap] = (ud->reverbIndex[tap] + 1) % ud->reverbSize;
-            }
+	    ud->reverbBuffer[ud->reverbIndex[0]] = inFloat + feedbackSum * ud->params->reverbDecay;
 
-            outputSample = (1.0f - ud->params->MIX) * inputSample + ud->params->MIX * outputSample;
+	    for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
+		ud->reverbIndex[tap]++;
+		if (ud->reverbIndex[tap] > ud->reverbSize)
+		    ud->reverbIndex[tap] = 0;
+	    }
 
-            if (outputSample > 1.0f) outputSample = 1.0f;
-            if (outputSample < -1.0f) outputSample = -1.0f;
-
-            *out++ = outputSample;
-            *out++ = outputSample;
+	    outFloat = (1.0f - ud->params->MIX) * inFloat + ud->params->MIX * outReverb;
         }
+
+        // Bitcrush
+        else if (ud->effects->bitcrush) {
+            // Calculate number of samples to hold
+            float sampleCount = ud->params->SAMPLE_RATE / ud->params->DOWNSAMPLE_RATE;
+
+            // Perform downsampling
+            if (ud->bitcrushCount >= sampleCount) {
+                // If bitcrush counter exceeds sample count, decrement counter & store new sample
+                ud->bitcrushCount = 0;
+                ud->bitcrushSample = inFloat;
+            }
+		
+	    float outBitcrush = ud->bitcrushSample;
+	    float step = ud->params->BITCRUSH_STEP;
+
+            // Perform quantization
+	    outBitcrush = roundf(outBitcrush / step) * step;
+	    // Apply mix amount
+            outFloat = (1.0f - ud->params->MIX) * inFloat + ud->params->MIX * outBitcrush;
+        }
+
+        else
+            outFloat = inFloat;
+
+	*out++ = toSample(outFloat);
+	*out++ = toSample(outFloat);
     }
-    return paContinue;
 }
 #endif //REALTIME_CALLBACK_H
