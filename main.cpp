@@ -24,7 +24,6 @@ using namespace std;
 
 // User Definitions
 #define FRAMES_PER_BUFFER 256
-#define CIRCULAR_MULTIPLIER 2.5
 const bool DEBUG = 0;
 
 // setup and open pcm
@@ -40,7 +39,7 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
 
     snd_pcm_hw_params_t* params;
 
-    snd_pcm_hw_params_malloc(&params);
+    snd_pcm_hw_params_alloca(&params);
     snd_pcm_hw_params_any(*handle, params);
     snd_pcm_hw_params_set_access(*handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
     snd_pcm_hw_params_set_format(*handle, params, SND_PCM_FORMAT_S16_LE);
@@ -55,13 +54,31 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
         return err;
     }
     snd_pcm_prepare(*handle);
-    snd_pcm_hw_params_free(params);
 
     if (DEBUG){
         snd_pcm_uframes_t actual_period, actual_buffer;
         snd_pcm_hw_params_get_period_size(params, &actual_period, 0);
         snd_pcm_hw_params_get_buffer_size(params, &actual_buffer);
         printf("Period: %lu, Buffer: %lu\n", actual_period, actual_buffer);
+    }
+
+    // set sw params
+    snd_pcm_sw_params_t* sw_params;
+    snd_pcm_sw_params_alloc(&sw_params);
+    snd_pcm_sw_params_current(*handle, sw_params);
+    // minimum # of frames for CPU to poll
+    snd_pcm_sw_params_set_avail_min(*handle, sw_params, period);
+
+    if (stream == SND_PCM_STREAM_PLAYBACK) {
+        snd_pcm_sw_params_set_start_threshold(*handle, sw_params, period);
+    } else {
+        snd_pcm_sw_params_set_start_threshold(*handle, sw_params, 1);
+    }
+
+    err = snd_pcm_sw_params(*handle, sw_params);
+    if (err < 0) {
+        fprintf(stderr, "Error setting SW parameters: %s\n", snd_strerror(err));
+        return err;
     }
 
     return 0;
@@ -125,10 +142,11 @@ int main(){
 
     // setup PCM device
     snd_pcm_uframes_t period = FRAMES_PER_BUFFER;
-    snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * 180;
+    snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * 4;
 
     setupPCM(DEVICE_NAME, &inHandle, SND_PCM_STREAM_CAPTURE, 1, 44100, period, buffer);
     setupPCM(DEVICE_NAME, &outHandle, SND_PCM_STREAM_PLAYBACK, 2, 44100, period, buffer);
+    snd_pcm_link(inHandle, outHandle);  // makes sure playback clock starts when record starts
   
     initData(userData, audioParams, effectChoice);
 
@@ -141,52 +159,40 @@ int main(){
         printf("Streaming... Press ENTER to stop and return to menu\n");
 
         bool streaming = true;
+        int writePtr = 0;
+        int readPtr = 0;
 
-	const int CIRCULAR_SIZE = FRAMES_PER_BUFFER * CIRCULAR_MULTIPLIER;
-	std::vector<SAMPLE> circBuffer(CIRCULAR_SIZE);
-	int writePtr = 0;
-	int readPtr = 0;
-
-	std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER);
-	std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * 2);
+        std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER);
+        std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * 2);
 
         while (streaming){
 	    snd_pcm_sframes_t framesRead = snd_pcm_readi(inHandle, inputBlock.data(), FRAMES_PER_BUFFER);
 	    
-	    if (framesRead < 0) {
+	    if (framesRead == -EPIPE) {     // xrun 
 	    	snd_pcm_prepare(inHandle);
-		continue;
+		    continue;
 	    }
-
-	    // copy into circBuffer
-	    for (int i = 0; i < framesRead; ++i){
-	    	circBuffer[writePtr] = inputBlock[i];
-		writePtr = (writePtr + 1) % CIRCULAR_SIZE;
-	    }
+        else if (framesRead < 0){
+            // fatal error, exit
+            break;
+        }
 
 	    // *** process ***
-	    int avail = (writePtr - readPtr + CIRCULAR_SIZE) % CIRCULAR_SIZE;
-	    while (avail >= FRAMES_PER_BUFFER * AudioParams::IN_CHANNELS){
-	    	for (int i = 0; i < FRAMES_PER_BUFFER; ++i){
-		    inputBlock[i] = circBuffer[readPtr];
-		    readPtr = (readPtr + 1) % CIRCULAR_SIZE;
-		}
-
-		// apply effects
 		processBlock(
 			inputBlock.data(),
 			outputBlock.data(),
-			FRAMES_PER_BUFFER,
+			framesRead,
 			&userData
 			);
 
 		// write to output
-		snd_pcm_sframes_t framesWritten = snd_pcm_writei(outHandle, outputBlock.data(), FRAMES_PER_BUFFER);
-		if (framesWritten < 0)
+		snd_pcm_sframes_t framesWritten = snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
+		if (framesWritten == -EPIPE)    // xrun
 		    snd_pcm_prepare(outHandle);
-
-		avail -= FRAMES_PER_BUFFER * AudioParams::CHANNELS;
+            continue;
 	    }
+        else if (framesRead < 0)
+            break;
 
 	    // check for ENTER
 	    struct pollfd pfds;
@@ -194,13 +200,11 @@ int main(){
 	    pfds.events = POLLIN;
 	    if (poll(&pfds, 1, 0) > 0){
 	    	char c;
-		read(STDIN_FILENO, &c, 1);
-		if (c == '\n'){
-		    streaming = false;
-		    resetData(userData);
-		}
-	    }
-
+            read(STDIN_FILENO, &c, 1);
+            if (c == '\n'){
+                streaming = false;
+                resetData(userData);
+            }
         }
 
         snd_pcm_drain(inHandle);
