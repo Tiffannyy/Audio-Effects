@@ -39,6 +39,7 @@ struct EffectChoices{
 
 // Parameters to pass to callback functions
 struct AudioParams{
+    float PI = 3.14159
 
     float MIX           = 0.5;      // Mix between original and delayed signals
 
@@ -77,7 +78,7 @@ struct RtUserData {
     
     RtUserData(){
     	for (int i = 0; i < LUT_SIZE; i++)
-    	    sineLUT[i] = sinf(2.0f * M_PI * i / LUT_SIZE);
+    	    sineLUT[i] = sinf(2.0f * AudioParams::PI * i / LUT_SIZE);
     }
 
     // Delay
