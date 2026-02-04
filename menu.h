@@ -14,11 +14,13 @@
 #include "types.h"
 
 // Choice function
-void choiceSelect(char choice, EffectChoices &effectChoice, bool &validChoice){
+void choiceSelect(char choice, EffectChoices &effectChoice, bool &validChoice, bool &exitFlag){
     switch (choice){
         case '0':
             std::cout << "Ending program..." << std::endl;
-            break;
+	    validChoice = true;
+	    exitFlag = true;
+	    break;
         case '1':                       // no effect
             effectChoice.norm = true;
             validChoice = true;
@@ -50,6 +52,7 @@ void choiceSelect(char choice, EffectChoices &effectChoice, bool &validChoice){
 // Menu function
 bool menuFunction(EffectChoices &effectChoice){
     bool validChoice = false;
+    bool exitFlag = false;
     char userChoice;
     std::cout << "*------ Audio Effects Program ------*\n" << "Effects Options:\n";
     std::cout << "(0) Exit Program" << std::endl; 
@@ -63,12 +66,15 @@ bool menuFunction(EffectChoices &effectChoice){
     std::cout << "Enter the integer value of the effect you would like to apply: ";
     std::cin >> userChoice;
 
-    choiceSelect(userChoice, effectChoice, validChoice);
-
+    choiceSelect(userChoice, effectChoice, validChoice, exitFlag);
+   
     while (!validChoice){
         std::cout << "Enter a valid option: ";
         std::cin >> userChoice; 
-        choiceSelect(userChoice, effectChoice, validChoice);
+        choiceSelect(userChoice, effectChoice, validChoice, exitFlag);
     }
+
+    if (exitFlag)
+	return false;
     return true;
 }

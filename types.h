@@ -39,7 +39,7 @@ struct EffectChoices{
 
 // Parameters to pass to callback functions
 struct AudioParams{
-    static const float PI = 3.14159;
+    static constexpr float PI = 3.14159;
 
     float MIX           = 0.5;      // Mix between original and delayed signals
 
@@ -50,7 +50,7 @@ struct AudioParams{
 
     // Delay
     static constexpr int DELAY_MS       = 500;      // delay in milliseconds
-    static constexpr float FEEDBACK    = 0.2;      // feedback amount (0 to 1)   -  for delay
+    static constexpr float FEEDBACK    = 0.4;     // feedback amount (0 to 1)   -  for delay
 
     // Reverb
     static const int REVERB_TAPS        = 5;        // number of delay taps for reverb
