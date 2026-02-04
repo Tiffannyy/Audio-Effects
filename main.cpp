@@ -166,51 +166,52 @@ int main(){
         std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * 2);
 
         while (streaming){
-	    snd_pcm_sframes_t framesRead = snd_pcm_readi(inHandle, inputBlock.data(), FRAMES_PER_BUFFER);
-	    
-	    if (framesRead == -EPIPE) {     // xrun 
-	    	snd_pcm_prepare(inHandle);
-		    continue;
-	    }
-        else if (framesRead < 0){
-            // fatal error, exit
-            break;
-        }
-
-	    // *** process ***
-		processBlock(
-			inputBlock.data(),
-			outputBlock.data(),
-			framesRead,
-			&userData
-			);
-
-		// write to output
-		snd_pcm_sframes_t framesWritten = snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
-		if (framesWritten == -EPIPE) {   // xrun
-		    snd_pcm_prepare(outHandle);
-            continue;
-	    }
-        else if (framesWritten < 0)
-            break;
-
-	    // check for ENTER
-	    struct pollfd pfds;
-	    pfds.fd = STDIN_FILENO;
-	    pfds.events = POLLIN;
-	    if (poll(&pfds, 1, 0) > 0){
-	    	char c;
-            read(STDIN_FILENO, &c, 1);
-            if (c == '\n'){
-                streaming = false;
-                resetData(userData);
+            snd_pcm_sframes_t framesRead = snd_pcm_readi(inHandle, inputBlock.data(), FRAMES_PER_BUFFER);
+            
+            if (framesRead == -EPIPE) {     // xrun 
+                snd_pcm_prepare(inHandle);
+                continue;
             }
+            else if (framesRead < 0){
+                // fatal error, exit
+                break;
+            }
+
+            // *** process ***
+            processBlock(
+                inputBlock.data(),
+                outputBlock.data(),
+                framesRead,
+                &userData
+                );
+
+            // write to output
+            snd_pcm_sframes_t framesWritten = snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
+            if (framesWritten == -EPIPE) {   // xrun
+                snd_pcm_prepare(outHandle);
+                continue;
+            }
+            else if (framesWritten < 0)
+                break;
+
+            // check for ENTER
+            struct pollfd pfds;
+            pfds.fd = STDIN_FILENO;
+            pfds.events = POLLIN;
+            if (poll(&pfds, 1, 0) > 0){
+                char c;
+                read(STDIN_FILENO, &c, 1);
+                if (c == '\n'){
+                    streaming = false;
+                    resetData(userData);
+                }
+            }
+
+            snd_pcm_drain(inHandle);
+            snd_pcm_drain(outHandle);
+
+            // reset effect flags so menu starts clean next time
+            effectChoice = EffectChoices();
         }
-
-        snd_pcm_drain(inHandle);
-        snd_pcm_drain(outHandle);
-
-        // reset effect flags so menu starts clean next time
-        effectChoice = EffectChoices();
     }
 }

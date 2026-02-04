@@ -14,7 +14,7 @@
 #include "types.h"
 
 // Choice function
-void choiceSelect(std::string choice, EffectChoices &effectChoice, bool &validChoice){
+void choiceSelect(char choice, EffectChoices &effectChoice, bool &validChoice){
     switch (choice){
         case '0':
             std::cout << "Ending program..." << std::endl;
@@ -63,7 +63,7 @@ bool menuFunction(EffectChoices &effectChoice){
     std::cout << "Enter the integer value of the effect you would like to apply: ";
     std::cin >> userChoice;
 
-    choiceSelect(to_string(userChoice), effectChoice, validChoice);
+    choiceSelect(userChoice, effectChoice, validChoice);
 
     while (!validChoice){
         std::cout << "Enter a valid option: ";
