@@ -18,7 +18,6 @@ void choiceSelect(std::string choice, EffectChoices &effectChoice, bool &validCh
     switch (choice){
         case '0':
             std::cout << "Ending program..." << std::endl;
-            return false; // request graceful exit to caller
             break;
         case '1':                       // no effect
             effectChoice.norm = true;
@@ -41,7 +40,7 @@ void choiceSelect(std::string choice, EffectChoices &effectChoice, bool &validCh
             validChoice = true;
             break;
         case '6':
-            effectChoice.dirt = true;
+            // effectChoice.dirt = true;
             validChoice = true;
         default:
             break;
@@ -59,12 +58,12 @@ bool menuFunction(EffectChoices &effectChoice){
     std::cout << "(3) Delay" << std::endl;    
     std::cout << "(4) Reverb" << std::endl;            
     std::cout << "(5) Bitcrush" << std::endl;
-    std::cout << "(6) Dirt" << std::endl;
+    // std::cout << "(6) Dirt" << std::endl;
 
     std::cout << "Enter the integer value of the effect you would like to apply: ";
     std::cin >> userChoice;
 
-    choiceSelect(userChoice, effectChoice, validChoice);
+    choiceSelect(to_string(userChoice), effectChoice, validChoice);
 
     while (!validChoice){
         std::cout << "Enter a valid option: ";

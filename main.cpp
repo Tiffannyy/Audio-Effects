@@ -64,7 +64,7 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
 
     // set sw params
     snd_pcm_sw_params_t* sw_params;
-    snd_pcm_sw_params_alloc(&sw_params);
+    snd_pcm_sw_params_malloc(&sw_params);
     snd_pcm_sw_params_current(*handle, sw_params);
     // minimum # of frames for CPU to poll
     snd_pcm_sw_params_set_avail_min(*handle, sw_params, period);
@@ -187,11 +187,11 @@ int main(){
 
 		// write to output
 		snd_pcm_sframes_t framesWritten = snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
-		if (framesWritten == -EPIPE)    // xrun
+		if (framesWritten == -EPIPE) {   // xrun
 		    snd_pcm_prepare(outHandle);
             continue;
 	    }
-        else if (framesRead < 0)
+        else if (framesWritten < 0)
             break;
 
 	    // check for ENTER
