@@ -39,7 +39,7 @@ struct EffectChoices{
 
 // Parameters to pass to callback functions
 struct AudioParams{
-    static const float PI = 3.14159;
+    static constexpr float PI = 3.14159;
 
     float MIX           = 0.5;      // Mix between original and delayed signals
 
