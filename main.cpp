@@ -144,8 +144,8 @@ int main(){
     snd_pcm_uframes_t period = FRAMES_PER_BUFFER;
     snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * 4;
 
-    setupPCM(DEVICE_NAME, &inHandle, SND_PCM_STREAM_CAPTURE, 1, 44100, period, buffer);
-    setupPCM(DEVICE_NAME, &outHandle, SND_PCM_STREAM_PLAYBACK, 2, 44100, period, buffer);
+    if (setupPCM(DEVICE_NAME, &inHandle, SND_PCM_STREAM_CAPTURE, 1, 44100, period, buffer) < 0) return 1;
+    if (setupPCM(DEVICE_NAME, &outHandle, SND_PCM_STREAM_PLAYBACK, 2, 44100, period, buffer) < 0) return 1;
     snd_pcm_link(inHandle, outHandle);  // makes sure playback clock starts when record starts
   
     initData(userData, audioParams, effectChoice);
@@ -206,12 +206,10 @@ int main(){
                     resetData(userData);
                 }
             }
-
-            snd_pcm_drain(inHandle);
-            snd_pcm_drain(outHandle);
-
-            // reset effect flags so menu starts clean next time
-            effectChoice = EffectChoices();
         }
+        // reset effect flags so menu starts clean next time
+        effectChoice = EffectChoices();
+        snd_pcm_drain(inHandle);
+        snd_pcm_drain(outHandle);
     }
 }
