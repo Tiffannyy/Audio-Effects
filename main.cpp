@@ -8,13 +8,18 @@
 */
 
 //Libraries
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <alsa/asoundlib.h>
 #include <limits>
 #include <string>
-#include <iostream>
 #include <poll.h>
+#include <vector>
+#include <unistd.h>
+#include <algorithm>
+#include <cmath>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "menu.h"
 #include "realtime_callback.h"
@@ -80,6 +85,7 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
         fprintf(stderr, "Error setting SW parameters: %s\n", snd_strerror(err));
         return err;
     }
+    snd_pcm_sw_params_free(sw_params);
 
     return 0;
 }
@@ -90,7 +96,7 @@ void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectCho
     ud.params = &audioParams;
     ud.effects = &effectChoice;
  
-    ud.tremIncrement = 2.0 * M_PI * audioParams.TREM_FREQ / (float)AudioParams::SAMPLE_RATE;
+    ud.tremIncrement = 2.0 * audioParams.PI * audioParams.TREM_FREQ / (float)AudioParams::SAMPLE_RATE;
  
     ud.delaySize = max((float)1, AudioParams::DELAY_MS * (float)AudioParams::SAMPLE_RATE / 1000);
     ud.delayBuffer.assign(ud.delaySize, 0.0f);
@@ -165,6 +171,10 @@ int main(){
         std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER);
         std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * 2);
 
+int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+
+
         while (streaming){
             snd_pcm_sframes_t framesRead = snd_pcm_readi(inHandle, inputBlock.data(), FRAMES_PER_BUFFER);
             
@@ -194,22 +204,18 @@ int main(){
             else if (framesWritten < 0)
                 break;
 
-            // check for ENTER
-            struct pollfd pfds;
-            pfds.fd = STDIN_FILENO;
-            pfds.events = POLLIN;
-            if (poll(&pfds, 1, 0) > 0){
-                char c;
-                read(STDIN_FILENO, &c, 1);
-                if (c == '\n'){
-                    streaming = false;
-                    resetData(userData);
-                }
-            }
+char c;
+ssize_t n = read(STDIN_FILENO, &c, 1);
+if (n > 0 && c == '\n') {
+    streaming = false;
+    resetData(userData);
+}
         }
         // reset effect flags so menu starts clean next time
         effectChoice = EffectChoices();
-        snd_pcm_drain(inHandle);
-        snd_pcm_drain(outHandle);
+        snd_pcm_drop(inHandle);
+        snd_pcm_drop(outHandle);
+        snd_pcm_prepare(inHandle);
+        snd_pcm_prepare(outHandle);
     }
 }
