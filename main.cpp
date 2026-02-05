@@ -28,8 +28,11 @@
 using namespace std;
 
 // User Definitions
-#define FRAMES_PER_BUFFER 256
+#define FRAMES_PER_BUFFER 512 
+#define BUFFER_MULT 4
 const bool DEBUG = 0;
+
+const char* DEVICE_NAME = "hw:0,0";
 
 // setup and open pcm
 int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
@@ -71,16 +74,14 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
     snd_pcm_sw_params_t* sw_params;
     snd_pcm_sw_params_malloc(&sw_params);
     snd_pcm_sw_params_current(*handle, sw_params);
-    // minimum # of frames for CPU to poll
-    snd_pcm_sw_params_set_avail_min(*handle, sw_params, period);
 
-    if (stream == SND_PCM_STREAM_PLAYBACK) {
-        snd_pcm_sw_params_set_start_threshold(*handle, sw_params, period);
-    } else {
-        snd_pcm_sw_params_set_start_threshold(*handle, sw_params, 1);
+
+    if (stream == SND_PCM_STREAM_PLAYBACK){
+       snd_pcm_sw_params_set_start_threshold(*handle, sw_params, buffer - period);
+       snd_pcm_sw_params_set_avail_min(*handle, sw_params, period);
     }
 
-    err = snd_pcm_sw_params(*handle, sw_params);
+     err = snd_pcm_sw_params(*handle, sw_params);
     if (err < 0) {
         fprintf(stderr, "Error setting SW parameters: %s\n", snd_strerror(err));
         return err;
@@ -144,50 +145,70 @@ int main(){
     EffectChoices effectChoice;
     RtUserData userData;
     
-    const char* DEVICE_NAME = "plughw:0,0";
-
     // setup PCM device
     snd_pcm_uframes_t period = FRAMES_PER_BUFFER;
-    snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * 4;
+    snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * BUFFER_MULT;
 
-    if (setupPCM(DEVICE_NAME, &inHandle, SND_PCM_STREAM_CAPTURE, 1, 44100, period, buffer) < 0) return 1;
+    if (setupPCM(DEVICE_NAME, &inHandle, SND_PCM_STREAM_CAPTURE, 2, 44100, period, buffer) < 0) return 1;
     if (setupPCM(DEVICE_NAME, &outHandle, SND_PCM_STREAM_PLAYBACK, 2, 44100, period, buffer) < 0) return 1;
-    snd_pcm_link(inHandle, outHandle);  // makes sure playback clock starts when record starts
-  
+
+    snd_pcm_nonblock(inHandle, 1);
+    snd_pcm_nonblock(outHandle, 1);
+   
     initData(userData, audioParams, effectChoice);
 
     // Main loop: show menu, stream, then return to menu until user exits
     while (true) {
         bool keepRunning = menuFunction(effectChoice);
-        if (!keepRunning) break;	
+        if (!keepRunning) break;
 
         // wait until user stops this session; then return to menu
-        printf("Streaming... Press ENTER to stop and return to menu\n");
-
+        printf("Streaming... Press ENTER to stop and return to menu\n");	
+	
         bool streaming = true;
         int writePtr = 0;
         int readPtr = 0;
 
-        std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER);
-        std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * 2);
+        std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
+        std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
 
-int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-
+	// polling
+	struct pollfd pfds[3];
+	int inCount = snd_pcm_poll_descriptors(inHandle, pfds, 1);
+	int outCount = snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
+	pfds[2].fd = STDIN_FILENO; pfds[2].events = POLLIN;
 
         while (streaming){
-            snd_pcm_sframes_t framesRead = snd_pcm_readi(inHandle, inputBlock.data(), FRAMES_PER_BUFFER);
+	    int ret = poll(pfds, 3, -1);
+	    if (ret < 0) continue;
+
+	    // check for enter
+	    if (pfds[2].revents & POLLIN) {
+		char c;
+		if (read(STDIN_FILENO, &c, 1) > 0 && c == '\n'){
+		    streaming = false;
+		    resetData(userData);
+		    initData(userData, audioParams, effectChoice);
+		    break;
+		}
+	    }
+           
+    	    snd_pcm_sframes_t framesRead =
+		    snd_pcm_readi(inHandle, inputBlock.data(), period);
             
-            if (framesRead == -EPIPE) {     // xrun 
+	    if (framesRead == -EAGAIN)
+    		continue;
+
+            if (framesRead == -EPIPE) {     // xrun
+		fprintf(stderr, "XRUN (capture)\n");
                 snd_pcm_prepare(inHandle);
                 continue;
             }
-            else if (framesRead < 0){
-                // fatal error, exit
-                break;
-            }
 
-            // *** process ***
+	    if (framesRead < 0)
+    		continue;
+
+	    // *** process ***
             processBlock(
                 inputBlock.data(),
                 outputBlock.data(),
@@ -196,20 +217,15 @@ fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
                 );
 
             // write to output
-            snd_pcm_sframes_t framesWritten = snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
+            snd_pcm_sframes_t framesWritten =
+	    	    snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
+
             if (framesWritten == -EPIPE) {   // xrun
+		fprintf(stderr, "XRUN (playback)\n");
                 snd_pcm_prepare(outHandle);
                 continue;
             }
-            else if (framesWritten < 0)
-                break;
 
-char c;
-ssize_t n = read(STDIN_FILENO, &c, 1);
-if (n > 0 && c == '\n') {
-    streaming = false;
-    resetData(userData);
-}
         }
         // reset effect flags so menu starts clean next time
         effectChoice = EffectChoices();
