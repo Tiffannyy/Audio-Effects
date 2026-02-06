@@ -3,8 +3,9 @@
  * DSP Program
  *
  * Tiffany Liu
- *
- * Description: Main file for DSP program.
+ * 5 February 2026
+ * 
+ * Description: Implementation of main program
 */
 
 //Libraries
@@ -15,24 +16,62 @@
 #include <string>
 #include <poll.h>
 #include <vector>
-#include <unistd.h>
 #include <algorithm>
 #include <cmath>
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "menu.h"
-#include "realtime_callback.h"
-#include "types.h"
+#include "include/menu.h"
+#include "include/callback.h"
+#include "include/types.h"
 
 using namespace std;
 
 // User Definitions
-#define FRAMES_PER_BUFFER 512 
+#define FRAMES_PER_BUFFER 512
 #define BUFFER_MULT 4
 const bool DEBUG = 0;
 
 const char* DEVICE_NAME = "hw:0,0";
+
+// function prototypes
+int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
+        unsigned int channels, unsigned int rate, snd_pcm_ugrames_t period,
+        snd_pcm_uframes_t buffer);
+
+void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectChoice);
+
+void resetData(RtUserData &ud);
+
+void stream(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectChoice);
+
+
+// main function
+int main(){
+    // Declare stream parameters
+    snd_pcm_t *inHandle, *outHandle;
+    AudioParams audioParams;
+    EffectChoices effectChoice;
+    RtUserData userData;
+    
+    // setup PCM device
+    snd_pcm_uframes_t period = FRAMES_PER_BUFFER;
+    snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * BUFFER_MULT;
+
+    if (setupPCM(DEVICE_NAME, &inHandle, SND_PCM_STREAM_CAPTURE, 2, 44100, period, buffer) < 0) return 1;
+    if (setupPCM(DEVICE_NAME, &outHandle, SND_PCM_STREAM_PLAYBACK, 2, 44100, period, buffer) < 0) return 1;
+
+    snd_pcm_nonblock(inHandle, 1);
+    snd_pcm_nonblock(outHandle, 1);
+   
+    initData(userData, audioParams, effectChoice);
+
+    // begin main loop
+    while (true) {
+        stream(userData, audioParams, effectChoice);
+    }
+}
+
 
 // setup and open pcm
 int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
@@ -137,101 +176,79 @@ void resetData(RtUserData &ud){
 }
 
 
-// main function
-int main(){
-    // Declare stream parameters
-    snd_pcm_t *inHandle, *outHandle;
-    AudioParams audioParams;
-    EffectChoices effectChoice;
-    RtUserData userData;
-    
-    // setup PCM device
-    snd_pcm_uframes_t period = FRAMES_PER_BUFFER;
-    snd_pcm_uframes_t buffer = FRAMES_PER_BUFFER * BUFFER_MULT;
+void stream(RtUserData &userData, AudioParams &audioParams, EffectChoices &effectChoice){
+    bool keepRunning = menuFunction(effectChoice);
+    if (!keepRunning) break;
 
-    if (setupPCM(DEVICE_NAME, &inHandle, SND_PCM_STREAM_CAPTURE, 2, 44100, period, buffer) < 0) return 1;
-    if (setupPCM(DEVICE_NAME, &outHandle, SND_PCM_STREAM_PLAYBACK, 2, 44100, period, buffer) < 0) return 1;
+    // wait until user stops this session; then return to menu
+    printf("Streaming... Press ENTER to stop and return to menu\n");	
 
-    snd_pcm_nonblock(inHandle, 1);
-    snd_pcm_nonblock(outHandle, 1);
-   
-    initData(userData, audioParams, effectChoice);
+    bool streaming = true;
+    int writePtr = 0;
+    int readPtr = 0;
 
-    // Main loop: show menu, stream, then return to menu until user exits
-    while (true) {
-        bool keepRunning = menuFunction(effectChoice);
-        if (!keepRunning) break;
+    std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
+    std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
 
-        // wait until user stops this session; then return to menu
-        printf("Streaming... Press ENTER to stop and return to menu\n");	
-	
-        bool streaming = true;
-        int writePtr = 0;
-        int readPtr = 0;
+    // polling
+    struct pollfd pfds[3];
+    int inCount = snd_pcm_poll_descriptors(inHandle, pfds, 1);
+    int outCount = snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
+    pfds[2].fd = STDIN_FILENO; pfds[2].events = POLLIN;
 
-        std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
-        std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
+    while (streaming){
+        int ret = poll(pfds, 3, -1);
+        if (ret < 0) continue;
 
-	// polling
-	struct pollfd pfds[3];
-	int inCount = snd_pcm_poll_descriptors(inHandle, pfds, 1);
-	int outCount = snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
-	pfds[2].fd = STDIN_FILENO; pfds[2].events = POLLIN;
-
-        while (streaming){
-	    int ret = poll(pfds, 3, -1);
-	    if (ret < 0) continue;
-
-	    // check for enter
-	    if (pfds[2].revents & POLLIN) {
-		char c;
-		if (read(STDIN_FILENO, &c, 1) > 0 && c == '\n'){
-		    streaming = false;
-		    resetData(userData);
-		    initData(userData, audioParams, effectChoice);
-		    break;
-		}
-	    }
-           
-    	    snd_pcm_sframes_t framesRead =
-		    snd_pcm_readi(inHandle, inputBlock.data(), period);
-            
-	    if (framesRead == -EAGAIN)
-    		continue;
-
-            if (framesRead == -EPIPE) {     // xrun
-		fprintf(stderr, "XRUN (capture)\n");
-                snd_pcm_prepare(inHandle);
-                continue;
+        // check for enter
+        if (pfds[2].revents & POLLIN) {
+            char c;
+            if (read(STDIN_FILENO, &c, 1) > 0 && c == '\n'){
+                streaming = false;
+                resetData(userData);
+                initData(userData, audioParams, effectChoice);
+                break;
             }
-
-	    if (framesRead < 0)
-    		continue;
-
-	    // *** process ***
-            processBlock(
-                inputBlock.data(),
-                outputBlock.data(),
-                framesRead,
-                &userData
-                );
-
-            // write to output
-            snd_pcm_sframes_t framesWritten =
-	    	    snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
-
-            if (framesWritten == -EPIPE) {   // xrun
-		fprintf(stderr, "XRUN (playback)\n");
-                snd_pcm_prepare(outHandle);
-                continue;
-            }
-
         }
-        // reset effect flags so menu starts clean next time
-        effectChoice = EffectChoices();
-        snd_pcm_drop(inHandle);
-        snd_pcm_drop(outHandle);
-        snd_pcm_prepare(inHandle);
-        snd_pcm_prepare(outHandle);
+        
+        snd_pcm_sframes_t framesRead =
+        snd_pcm_readi(inHandle, inputBlock.data(), period);
+        
+        if (framesRead == -EAGAIN)
+            continue;
+
+        if (framesRead == -EPIPE) {     // xrun
+            fprintf(stderr, "XRUN (capture)\n");
+            snd_pcm_prepare(inHandle);
+            continue;
+        }
+
+        if (framesRead < 0)
+            continue;
+
+        // *** process ***
+        processBlock(
+            inputBlock.data(),
+            outputBlock.data(),
+            framesRead,
+            &userData
+            );
+
+        // write to output
+        snd_pcm_sframes_t framesWritten =
+            snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
+
+        if (framesWritten == -EPIPE) {   // xrun
+            fprintf(stderr, "XRUN (playback)\n");
+            snd_pcm_prepare(outHandle);
+            continue;
+        }
+
     }
+    // reset effect flags so menu starts clean next time
+    effectChoice = EffectChoices();
+    snd_pcm_drop(inHandle);
+    snd_pcm_drop(outHandle);
+    snd_pcm_prepare(inHandle);
+    snd_pcm_prepare(outHandle);
 }

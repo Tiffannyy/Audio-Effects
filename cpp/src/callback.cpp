@@ -1,32 +1,15 @@
 /*
- * realtime_callback.h
- * DSP Program
+ * callback.cpp
  * 
- * Tiffany Liu
- * 5 June 2025
+ * Tiffany Liu, Nathaniel Kalaw
+ * 5 February 2026
  * 
- * Description: Contains the callback function for realtime / continuous audio processing
- * 
+ * Description: Implementation of callback function.
+ * Contains processing logic.
 */
 
-
-#ifndef REALTIME_CALLBACK_H
-#define REALTIME_CALLBACK_H
-
-#define SAMPLE_SILENCE 0.0f
-
+#include "../include/callback.h"
 #include <cmath>
-
-inline float toFloat(SAMPLE val){
-	return val / 32768.0f;
-}
-
-inline SAMPLE toSample(float val){
-	if (val > 1.0f) val = 1.0f;
-	if (val < -1.0f) val = -1.0f;
-	return (SAMPLE)(val * 32767.0f);
-}
-
 
 // Callback Function
 static inline void processBlock(const SAMPLE* in, SAMPLE* out,
@@ -35,9 +18,9 @@ static inline void processBlock(const SAMPLE* in, SAMPLE* out,
 
     for(unsigned long i = 0; i < framesPerBuffer; i++){
         SAMPLE inL = *in++;
-	SAMPLE inR = *in++;
-	float inFloatL = toFloat(inL);
-	float inFloatR = toFloat(inR);
+        SAMPLE inR = *in++;
+        float inFloatL = toFloat(inL);
+        float inFloatR = toFloat(inR);
 
     	float outL = inFloatL;
     	float outR = inFloatR;
@@ -83,7 +66,7 @@ static inline void processBlock(const SAMPLE* in, SAMPLE* out,
         // Reverb
         else if (ud->effects->reverb){
             float outReverb = SAMPLE_SILENCE;
-	    float feedbackSum = SAMPLE_SILENCE;
+	        float feedbackSum = SAMPLE_SILENCE;
 
             for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
                 int j = (ud->reverbIndex[tap] + ud->reverbSize - ud->reverbDelay[tap]) % ud->reverbSize;
@@ -92,18 +75,18 @@ static inline void processBlock(const SAMPLE* in, SAMPLE* out,
 
                 // update buffer with input + feedback
                 ud->reverbBuffer[ud->reverbIndex[tap]] = inFloatL + feedbackSum * ud->params->reverbDecay;
-	    }
+	        }
 
-	    ud->reverbBuffer[ud->reverbIndex[0]] = inFloatL + feedbackSum * ud->params->reverbDecay;
+            ud->reverbBuffer[ud->reverbIndex[0]] = inFloatL + feedbackSum * ud->params->reverbDecay;
 
-	    for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
-		ud->reverbIndex[tap]++;
-		if (ud->reverbIndex[tap] >= ud->reverbSize)
-		    ud->reverbIndex[tap] = 0;
-	    }
+            for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
+            ud->reverbIndex[tap]++;
+            if (ud->reverbIndex[tap] >= ud->reverbSize)
+                ud->reverbIndex[tap] = 0;
+            }
 
-	    outL = (1.0f - ud->params->MIX) * inFloatL + ud->params->MIX * outReverb;
-        }
+            outL = (1.0f - ud->params->MIX) * inFloatL + ud->params->MIX * outReverb;
+            }
 
         // Bitcrush
         else if (ud->effects->bitcrush) {
@@ -113,27 +96,30 @@ static inline void processBlock(const SAMPLE* in, SAMPLE* out,
             // Perform downsampling
             if (ud->bitcrushCount >= sampleCount) {
                 // If bitcrush counter exceeds sample count, decrement counter & store new sample
-                ud->bitcrushCount = 0;
+                ud->bitcrushCount -= sampleCount;
                 ud->bitcrushSample = inFloatL;
-		ud->bitcrushCount++;
+		        outL = inFloatL;
+            }
+            else{
+                ud->bitcrushCount++;
+                outL = ud->bitcrushSample;
             }
 	
-	    float outBitcrush = ud->bitcrushSample;
-	    float step = ud->params->BITCRUSH_STEP;
+            float outBitcrush = ud->bitcrushSample;
+            float step = ud->params->BITCRUSH_STEP;
 
             // Perform quantization
-	    outBitcrush = roundf(outBitcrush / step) * step;
-	    // Apply mix amount
+	        outBitcrush = roundf(outBitcrush / step) * step;
+	        // Apply mix amount
             outL = (1.0f - ud->params->MIX) * inFloatL + ud->params->MIX * outBitcrush;
         }
 
         else{
             outL = inFloatL;
-	    outR = inFloatR;
-	}
+	        outR = inFloatR;
+	    }
 
-	*out++ = toSample(outL);
-	*out++ = toSample(outR);
+        *out++ = toSample(outL);
+        *out++ = toSample(outR);
     }
 }
-#endif //REALTIME_CALLBACK_H

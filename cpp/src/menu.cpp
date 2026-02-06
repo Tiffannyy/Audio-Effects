@@ -1,17 +1,13 @@
-/* 
- * menu.h
- * DSP program
+/*
+ * menu.cpp
  *
  * Tiffany Liu
- * 4 June 2025
+ * 5 February 2026
  * 
- * Description: contains the menu function for main.cpp
- * 
+ * Description: Implementation of menu function
 */
 
 #include <iostream>
-
-#include "types.h"
 
 // Choice function
 void choiceSelect(char choice, EffectChoices &effectChoice, bool &validChoice, bool &exitFlag){
@@ -75,6 +71,6 @@ bool menuFunction(EffectChoices &effectChoice){
     }
 
     if (exitFlag)
-	return false;
+	    return false;
     return true;
 }
