@@ -29,11 +29,14 @@ struct paTestData{
 
 // Primarily for menu and callback functions
 struct EffectChoices{
-    bool norm     = false;
-    bool trem     = false;
-    bool delay    = false;
-    bool reverb   = false;
-    bool bitcrush = false;
+    bool norm       = false;
+    bool trem       = false;
+    bool delay      = false;
+    bool reverb     = false;
+    bool bitcrush   = false;
+    bool overdrive  = false;
+    bool distortion = false;
+    bool fuzz       = false;
 };
 
 
@@ -58,12 +61,51 @@ struct AudioParams{
 
     // Bitcrush
     int DOWNSAMPLE_RATE = 12000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
-    static constexpr int BIT_DEPTH       = 3;        // Amount of bits to "quantize" sample amplitude
+    int BIT_DEPTH       = 8;        // Amount of bits to "quantize" sample amplitude
     static constexpr float BITCRUSH_STEP = 1.0f / (1 << BIT_DEPTH);
 
-    static constexpr int IN_CHANNELS = 1;
-    static constexpr int CHANNELS = 2;
-    static constexpr unsigned int SAMPLE_RATE   = 48000;
+        // Overdrive
+    float OD_DRIVE  = 1;
+    float OD_TONE   = 1;
+    float OD_FACTOR = 3;
+
+    // Distortion
+    float DIST_DRIVE  = 1;
+    float DIST_TONE   = 1;
+    float DIST_FACTOR = 3;
+
+    // Fuzz
+    float FUZZ_DRIVE    = 1;
+    float FUZZ_TONE     = 1;
+    float FUZZ_FACTOR   = 20;
+    float FUZZ_MAX_BIAS = 0.6;   // Must be between -1 to 1
+    static constexpr float FUZZ_ATTACK = 8;  // In milliseconds
+
+    // Tone filter parameters
+    // (The implementation of "tone" utilizes a windowed lowpass filter.)
+    static const int TONE_SIZE = 10;
+    float TONE_COEFFICIENTS[TONE_SIZE] = {
+        0.0139,
+        0.0353,
+        0.0917,
+        0.1594,
+        0.2050,
+        0.2050,
+        0.1594,
+        0.0917,
+        0.0353,
+        0.0139
+    };
+
+    // DC filter parameters
+    // (An IIR with a zero at z = 1 and a pole "near" z = 1.)
+    float DC_POLE_COEFFICENT = 0.995;
+    float DC_MIX = 0.3;
+
+    const double PI     = 3.14159265358979323846;
+    static constexpr int IN_CHANNELS   = 1;
+    static constexpr int OUT_CHANNELS  = 2;
+    static constexpr int SAMPLE_RATE   = 44100;
 };
 
 
@@ -99,6 +141,19 @@ struct RtUserData {
     float bitcrushSample = 0.0f;
 
     float tremIncrement;   // precomputed 2*pi*f / sampleRate
+
+        // Fuzz
+    float fuzzSampleAvg = 0.0f;
+    int fuzzSampleCount = (params->FUZZ_ATTACK / 1000) * params->SAMPLE_RATE;
+
+    // Tone filter buffers
+    SAMPLE odToneBuffer[AudioParams::TONE_SIZE] = {};
+    SAMPLE distToneBuffer[AudioParams::TONE_SIZE] = {};
+    SAMPLE fuzzToneBuffer[AudioParams::TONE_SIZE] = {};
+
+    // DC filter buffers
+    SAMPLE dcInputBuffer = 0.0f;
+    SAMPLE dcOutputBuffer = 0.0f;
 };
 
 

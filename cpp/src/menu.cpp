@@ -17,29 +17,38 @@ void choiceSelect(char choice, EffectChoices &effectChoice, bool &validChoice, b
 	    validChoice = true;
 	    exitFlag = true;
 	    break;
-        case '1':                       // no effect
+        case '1':
             effectChoice.norm = true;
             validChoice = true;
             break;
-        case '2':                       // tremolo
+        case '2':
             effectChoice.trem = true;
             validChoice = true;
             break;
         case '3':
-            effectChoice.delay = true;  // delay
+            effectChoice.delay = true;
             validChoice = true;
             break;
         case '4':
-            effectChoice.reverb = true; // reverb
+            effectChoice.reverb = true;
             validChoice = true;
             break;
         case '5':
-            effectChoice.bitcrush = true; // bitcrush
+            effectChoice.bitcrush = true;
             validChoice = true;
             break;
         case '6':
-            // effectChoice.dirt = true;
+            effectChoice.overdrive = true;
             validChoice = true;
+            break;
+        case '7':
+            effectChoice.distortion = true;
+            validChoice = true;
+            break;
+        case '8':
+            effectChoice.fuzz = true;
+            validChoice = true;
+            break;
         default:
             break;
     }
@@ -57,7 +66,9 @@ bool menuFunction(EffectChoices &effectChoice){
     std::cout << "(3) Delay" << std::endl;    
     std::cout << "(4) Reverb" << std::endl;            
     std::cout << "(5) Bitcrush" << std::endl;
-    // std::cout << "(6) Dirt" << std::endl;
+    std::cout << "(6) Overdrive" << std::endl;
+    std::cout << "(7) Distortion" << std::endl;
+    std::cout << "(8) Fuzz" << std::endl;
 
     std::cout << "Enter the integer value of the effect you would like to apply: ";
     std::cin >> userChoice;
