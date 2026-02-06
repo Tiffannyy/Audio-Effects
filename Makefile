@@ -1,7 +1,7 @@
 # makefile for AudioEffects program
 
 # Compiler
-CP = g++
+CXX = g++ -I /cpp
 
 # Flags
 CFLAGS = -std=c++11
@@ -9,12 +9,14 @@ LDFLAGS = -lasound
 
 # Target Executable
 TARGET = start
-TARGETSRC = main.cpp
+SRCS = 	cpp/src/main.cpp \
+	 	cpp/src/callback.cpp \
+
 
 all: $(TARGET)
 
-$(TARGET): $(TARGETSRC)
-	$(CP) $(CFLAGS) $(TARGETSRC) -o $(TARGET) $(LDPATH) $(LDFLAGS)
+$(TARGET): $(SRCS)
+	$(CXX) $(CFLAGS) $(SRCS) -o $(TARGET) $(LDFLAGS)
 
 clean:
-	rm -f $(TARGET) *.o
+	rm -f $(TARGET)
