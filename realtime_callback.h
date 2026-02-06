@@ -20,6 +20,106 @@ using namespace std;
 #define SAMPLE_SILENCE  0.0f
 
 
+// Overdrive function
+SAMPLE applyOverdrive(SAMPLE inputSample, RtUserData *ud) {
+    
+    // Effect parameters
+    float drive    = ud->params->OD_DRIVE;
+    float odFactor = ud->params->OD_FACTOR;
+
+    // Apply transfer characteristic
+    float intensityFactor = 1 / (odFactor*drive + 0.01);
+    float normalizeFactor = 1 / (intensityFactor + 1);
+    SAMPLE outputSample = (inputSample / (intensityFactor + abs(inputSample)));
+    outputSample /= normalizeFactor;
+
+    return outputSample;
+}
+
+
+// Distortion function
+SAMPLE applyDistortion(SAMPLE inputSample, RtUserData *ud) {
+    
+    // Effect parameters
+    float drive      = ud->params->DIST_DRIVE;
+    float distFactor = ud->params->DIST_FACTOR;
+
+    // Apply transfer characteristic
+    SAMPLE outputSample = (1 + (distFactor-1)*drive) * inputSample;
+    if (outputSample > 1.0f) outputSample = 1.0f;
+    if (outputSample < -1.0f) outputSample = -1.0f;
+
+    return outputSample;
+}
+
+
+// Fuzz function
+SAMPLE applyFuzz(SAMPLE inputSample, RtUserData *ud) {
+    
+    // Effect parameters
+    float drive       = ud->params->FUZZ_DRIVE;
+    float fuzzFactor  = ud->params->FUZZ_FACTOR;
+    float fuzzBias    = ud->params->FUZZ_MAX_BIAS;
+    int   fuzzAttack  = ud->fuzzSampleCount;
+
+    // Adjust average amplitude for reactive biasing
+    ud->fuzzSampleAvg = ud->fuzzSampleAvg + (min(1.414*abs(inputSample), 1.0) - ud->fuzzSampleAvg) / fuzzAttack;
+    fuzzBias *= ud->fuzzSampleAvg;
+
+    // Apply transfer characteristic
+    float intensityFactor = 1 / (fuzzFactor*drive + 0.01);
+    float biasFactor      = fuzzBias * drive;
+    float normalizeFactor;
+    if (inputSample >= -biasFactor)
+        normalizeFactor = (1 + biasFactor) / (intensityFactor + abs(1 + biasFactor));
+    else
+        normalizeFactor = (1 - biasFactor) / (intensityFactor + abs(-1 + biasFactor));
+    SAMPLE outputSample = (inputSample + biasFactor) / (intensityFactor + abs(inputSample + biasFactor));
+    outputSample /= normalizeFactor;
+
+    return outputSample;
+}
+
+
+// Tone filter function
+SAMPLE applyToneFilter(SAMPLE inputSample, RtUserData *ud, SAMPLE* filterBuffer, float toneAmount) {
+
+    /* NOTE: This was generalized for all 3 distortion effects, so buffer array
+     * and tone parameter are directly passed to reduce calculation. */
+
+    // Shift filter buffers over
+    for (int i = ud->params->TONE_SIZE - 2; i >= 0; i--)
+        filterBuffer[i+1] = filterBuffer[i];
+    filterBuffer[0] = inputSample;
+
+    // Apply tone coefficients for lowpass filter
+    SAMPLE outputSample = SAMPLE_SILENCE;
+    for (int i = 0; i < ud->params->TONE_SIZE; i++)
+        outputSample += ud->params->TONE_COEFFICIENTS[i] * filterBuffer[i];
+
+    // Apply mix amount
+    outputSample = toneAmount * inputSample + (1.0f - toneAmount) * outputSample;
+
+    return outputSample;
+}
+
+
+// DC filter function
+SAMPLE applyDCFilter(SAMPLE inputSample, RtUserData *ud) {
+
+    // Apply IIR equation for DC filter
+    // y[n] = x[n] - x[n-1] + Ry[n-1]
+    SAMPLE outputSample = inputSample - ud->dcInputBuffer + (ud->params->DC_POLE_COEFFICENT)*ud->dcOutputBuffer;
+    ud->dcInputBuffer = inputSample;
+    ud->dcOutputBuffer = outputSample;
+
+    // Apply mix amount
+    outputSample = ud->params->DC_MIX * outputSample + (1.0f - ud->params->DC_MIX) * inputSample;
+
+    return outputSample;
+}
+
+
 // Callback Function
 static int streamCallback(const void *inputBuffer, void *outputBuffer,
                      unsigned long framesPerBuffer,
@@ -48,6 +148,7 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
 
         SAMPLE inputSample = *in++; // mono input
         
+
         // No effect
         if (ud->effects->norm){
             *out++ = inputSample;  // left
@@ -125,7 +226,6 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
 
         // Bitcrush
         else if (ud->effects->bitcrush) {
-            // inputSample
             SAMPLE outputSample = SAMPLE_SILENCE;
 
             // Calculate number of samples to hold
@@ -156,7 +256,72 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
         }
 
 
+        // Overdrive 
+        else if (ud->effects->overdrive) {
+            SAMPLE outputSample = SAMPLE_SILENCE;
+
+            // Apply effect and filters
+            SAMPLE distortedSample = applyOverdrive(inputSample, ud);
+            SAMPLE filteredSample = applyToneFilter(distortedSample, ud, ud->odToneBuffer, ud->params->OD_TONE);
+            outputSample = filteredSample;
+
+            // Adjust for overflow
+            if (outputSample > 1.0f) outputSample = 1.0f;
+            if (outputSample < -1.0f) outputSample = -1.0f;
+
+            // Apply mix amount
+            outputSample = (1.0f - ud->params->MIX) * inputSample + ud->params->MIX * outputSample;
+
+            *out++ = outputSample;
+            *out++ = outputSample;
+        }
+
+
+        // Distortion
+        else if (ud->effects->distortion) {
+            SAMPLE outputSample = SAMPLE_SILENCE;
+
+            // Apply effect and filters
+            SAMPLE distortedSample = applyDistortion(inputSample, ud);
+            SAMPLE filteredSample = applyToneFilter(distortedSample, ud, ud->distToneBuffer, ud->params->DIST_TONE);
+            outputSample = filteredSample;
+
+            // Adjust for overflow
+            if (outputSample > 1.0f) outputSample = 1.0f;
+            if (outputSample < -1.0f) outputSample = -1.0f;
+
+            // Apply mix amount
+            outputSample = (1.0f - ud->params->MIX) * inputSample + ud->params->MIX * outputSample;
+
+            *out++ = outputSample;
+            *out++ = outputSample;
+        }
+
+
+        // Fuzz
+        else if (ud->effects->fuzz) {
+            SAMPLE outputSample = SAMPLE_SILENCE;
+
+            // Apply effect and filters
+            SAMPLE distortedSample = applyFuzz(inputSample, ud);
+            SAMPLE filteredSample = applyToneFilter(distortedSample, ud, ud->fuzzToneBuffer, ud->params->FUZZ_TONE);
+            SAMPLE dcFilteredSample = applyDCFilter(filteredSample, ud);
+            outputSample = dcFilteredSample;
+
+            // Adjust for overflow
+            if (outputSample > 1.0f) outputSample = 1.0f;
+            if (outputSample < -1.0f) outputSample = -1.0f;
+
+            *out++ = outputSample;
+            *out++ = outputSample;
+        }
+
+
     }
+
     return paContinue;
 }
+
+
+
 #endif //REALTIME_CALLBACK_H

@@ -29,6 +29,9 @@ void menuFunction(EffectChoices& effectChoice){
     cout << "(3) Delay" << endl;    
     cout << "(4) Reverb" << endl;            
     cout << "(5) Bitcrush" << endl;
+    cout << "(6) Overdrive" << endl;
+    cout << "(7) Distortion" << endl;
+    cout << "(8) Fuzz" << endl;
 //    cout << "(4) Volume Adjuster" << endl;
     cout << "Enter the integer value of the effect you would like to apply: ";
     cin >> userChoice;
@@ -56,6 +59,18 @@ void menuFunction(EffectChoices& effectChoice){
                 break;
             case '5':
                 effectChoice.bitcrush = true;
+                validChoice = true;
+                break;
+            case '6':
+                effectChoice.overdrive = true;
+                validChoice = true;
+                break;
+            case '7':
+                effectChoice.distortion = true;
+                validChoice = true;
+                break;
+            case '8':
+                effectChoice.fuzz = true;
                 validChoice = true;
                 break;
             default:
@@ -88,6 +103,18 @@ void menuFunction(EffectChoices& effectChoice){
                 break;
             case '5':
                 effectChoice.bitcrush = true; // bitcrush
+                validChoice = true;
+                break;
+            case '6':
+                effectChoice.overdrive = true;
+                validChoice = true;
+                break;
+            case '7':
+                effectChoice.distortion = true;
+                validChoice = true;
+                break;
+            case '8':
+                effectChoice.fuzz = true;
                 validChoice = true;
                 break;
             default:
