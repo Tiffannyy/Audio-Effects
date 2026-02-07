@@ -14,18 +14,9 @@
 #define TYPES_H
 
 #include <cmath>
-#include <vector>
 
 // User Defined Data
 typedef int16_t SAMPLE;
-
-
-struct paTestData{
-    int          frameIndex;
-    int          maxFrameIndex;
-    SAMPLE      *recordedSamples;
-};
-
 
 // Primarily for menu and callback functions
 struct EffectChoices{
@@ -102,8 +93,7 @@ struct AudioParams{
     float DC_POLE_COEFFICENT = 0.995;
     float DC_MIX = 0.3;
 
-    static constexpr int IN_CHANNELS   = 2;
-    static constexpr int OUT_CHANNELS  = 2;
+    static constexpr int CHANNELS   = 2;
     static constexpr int SAMPLE_RATE   = 44100;
 };
 
@@ -141,18 +131,18 @@ struct RtUserData {
 
     float tremIncrement;   // precomputed 2*pi*f / sampleRate
 
-        // Fuzz
+    // Fuzz
     float fuzzSampleAvg = 0.0f;
     int fuzzSampleCount = (params->FUZZ_ATTACK / 1000) * params->SAMPLE_RATE;
 
     // Tone filter buffers
-    SAMPLE odToneBuffer[AudioParams::TONE_SIZE] = {};
-    SAMPLE distToneBuffer[AudioParams::TONE_SIZE] = {};
-    SAMPLE fuzzToneBuffer[AudioParams::TONE_SIZE] = {};
+    float odToneBuffer[AudioParams::TONE_SIZE] = {};
+    float distToneBuffer[AudioParams::TONE_SIZE] = {};
+    float fuzzToneBuffer[AudioParams::TONE_SIZE] = {};
 
     // DC filter buffers
-    SAMPLE dcInputBuffer = 0.0f;
-    SAMPLE dcOutputBuffer = 0.0f;
+    float dcInputBuffer = 0.0f;
+    float dcOutputBuffer = 0.0f;
 };
 
 

@@ -36,7 +36,7 @@ const char* DEVICE_NAME = "hw:0,0";
 
 // function prototypes
 int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
-        unsigned int channels, unsigned int rate, snd_pcm_ugrames_t period,
+        unsigned int channels, unsigned int rate, snd_pcm_uframes_t period,
         snd_pcm_uframes_t buffer);
 
 void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectChoice);
@@ -68,7 +68,9 @@ int main(){
 
     // begin main loop
     while (true) {
-        stream(userData, audioParams, effectChoice);
+        bool keepRunning = menuFunction(effectChoice);
+        if (!keepRunning) break;
+        stream(userData, audioParams, effectChoice, inHandle, outHandle);
     }
 }
 
@@ -176,10 +178,9 @@ void resetData(RtUserData &ud){
 }
 
 
-void stream(RtUserData &userData, AudioParams &audioParams, EffectChoices &effectChoice){
-    bool keepRunning = menuFunction(effectChoice);
-    if (!keepRunning) break;
-
+void stream(RtUserData &userData, AudioParams &audioParams,
+            EffectChoices &effectChoice,
+            snd_pcm_t *inHandle, snd_pcm_t *outHandle){
     // wait until user stops this session; then return to menu
     printf("Streaming... Press ENTER to stop and return to menu\n");	
 
