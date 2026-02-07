@@ -13,6 +13,9 @@
 #include "types.h"
 #define SAMPLE_SILENCE 0.0f
 
+float applyToneFilter(SAMPLE inputSample, RtUserData *ud, SAMPLE* filterBuffer, float toneAmount);
+
+
 inline float toFloat(SAMPLE val){
 	return val / 32768.0f;
 }

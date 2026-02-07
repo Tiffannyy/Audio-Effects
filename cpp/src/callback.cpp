@@ -71,7 +71,7 @@ SAMPLE applyFuzz(SAMPLE inputSample, RtUserData *ud) {
 
 
 // Tone filter function
-SAMPLE applyToneFilter(SAMPLE inputSample, RtUserData *ud, SAMPLE* filterBuffer, float toneAmount) {
+float applyToneFilter(float inputSample, RtUserData *ud, float* filterBuffer, float toneAmount) {
 
     /* NOTE: This was generalized for all 3 distortion effects, so buffer array
      * and tone parameter are directly passed to reduce calculation. */
@@ -82,7 +82,7 @@ SAMPLE applyToneFilter(SAMPLE inputSample, RtUserData *ud, SAMPLE* filterBuffer,
     filterBuffer[0] = inputSample;
 
     // Apply tone coefficients for lowpass filter
-    SAMPLE outputSample = SAMPLE_SILENCE;
+    float outputSample = SAMPLE_SILENCE;
     for (int i = 0; i < ud->params->TONE_SIZE; i++)
         outputSample += ud->params->TONE_COEFFICIENTS[i] * filterBuffer[i];
 
@@ -94,11 +94,11 @@ SAMPLE applyToneFilter(SAMPLE inputSample, RtUserData *ud, SAMPLE* filterBuffer,
 
 
 // DC filter function
-SAMPLE applyDCFilter(SAMPLE inputSample, RtUserData *ud) {
+float applyDCFilter(float inputSample, RtUserData *ud) {
 
     // Apply IIR equation for DC filter
     // y[n] = x[n] - x[n-1] + Ry[n-1]
-    SAMPLE outputSample = inputSample - ud->dcInputBuffer + (ud->params->DC_POLE_COEFFICENT)*ud->dcOutputBuffer;
+    float outputSample = inputSample - ud->dcInputBuffer + (ud->params->DC_POLE_COEFFICENT)*ud->dcOutputBuffer;
     ud->dcInputBuffer = inputSample;
     ud->dcOutputBuffer = outputSample;
 
@@ -109,13 +109,13 @@ SAMPLE applyDCFilter(SAMPLE inputSample, RtUserData *ud) {
 }
 
 // Callback Function
-static inline void processBlock(const SAMPLE* in, SAMPLE* out,
+static inline void processBlock(const float* in, float* out,
                      unsigned long framesPerBuffer,
                      RtUserData* ud){
 
     for(unsigned long i = 0; i < framesPerBuffer; i++){
-        SAMPLE inL = *in++;
-        SAMPLE inR = *in++;
+        float inL = *in++;
+        float inR = *in++;
         float inFloatL = toFloat(inL);
         float inFloatR = toFloat(inR);
 
