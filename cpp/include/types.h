@@ -42,7 +42,7 @@ struct EffectChoices{
 
 // Parameters to pass to callback functions
 struct AudioParams{
-    static constexpr float PI = 3.14159;
+    static constexpr float PI = 3.14159265358979323846;;
 
     float MIX           = 0.5;      // Mix between original and delayed signals
 
@@ -61,10 +61,10 @@ struct AudioParams{
 
     // Bitcrush
     int DOWNSAMPLE_RATE = 12000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
-    int BIT_DEPTH       = 8;        // Amount of bits to "quantize" sample amplitude
+    static constexpr int BIT_DEPTH       = 8;        // Amount of bits to "quantize" sample amplitude
     static constexpr float BITCRUSH_STEP = 1.0f / (1 << BIT_DEPTH);
 
-        // Overdrive
+    // Overdrive
     float OD_DRIVE  = 1;
     float OD_TONE   = 1;
     float OD_FACTOR = 3;
@@ -102,8 +102,7 @@ struct AudioParams{
     float DC_POLE_COEFFICENT = 0.995;
     float DC_MIX = 0.3;
 
-    const double PI     = 3.14159265358979323846;
-    static constexpr int IN_CHANNELS   = 1;
+    static constexpr int IN_CHANNELS   = 2;
     static constexpr int OUT_CHANNELS  = 2;
     static constexpr int SAMPLE_RATE   = 44100;
 };

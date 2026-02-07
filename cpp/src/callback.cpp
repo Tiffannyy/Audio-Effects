@@ -52,7 +52,7 @@ SAMPLE applyFuzz(SAMPLE inputSample, RtUserData *ud) {
     int   fuzzAttack  = ud->fuzzSampleCount;
 
     // Adjust average amplitude for reactive biasing
-    ud->fuzzSampleAvg = ud->fuzzSampleAvg + (min(1.414*abs(inputSample), 1.0) - ud->fuzzSampleAvg) / fuzzAttack;
+    ud->fuzzSampleAvg = ud->fuzzSampleAvg + (fmin(1.414*abs(inputSample), 1.0) - ud->fuzzSampleAvg) / fuzzAttack;
     fuzzBias *= ud->fuzzSampleAvg;
 
     // Apply transfer characteristic
