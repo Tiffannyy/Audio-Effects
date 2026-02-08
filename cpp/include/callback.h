@@ -26,6 +26,6 @@ inline SAMPLE toSample(float val){
 	return (SAMPLE)(val * 32767.0f);
 }
 
-static inline void processBlock(const SAMPLE* in, SAMPLE* out,
+void processBlock(const SAMPLE* in, SAMPLE* out,
                 unsigned long framesPerBuffer,
                 RtUserData* ud);

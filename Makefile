@@ -10,7 +10,8 @@ LDFLAGS = -lasound
 # Target Executable
 TARGET = start
 SRCS = 	cpp/src/main.cpp \
-	 	cpp/src/callback.cpp \
+	cpp/src/callback.cpp \
+	cpp/src/menu.cpp
 
 
 all: $(TARGET)

@@ -21,9 +21,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "include/menu.h"
-#include "include/callback.h"
-#include "include/types.h"
+#include "../include/menu.h"
+#include "../include/callback.h"
+#include "../include/types.h"
 
 using namespace std;
 
@@ -43,7 +43,10 @@ void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectCho
 
 void resetData(RtUserData &ud);
 
-void stream(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectChoice);
+void stream(RtUserData &ud, AudioParams &audioParams,
+		EffectChoices &effectChoice,
+	       	snd_pcm_t *inHandle, snd_pcm_t *outHandle,
+		snd_pcm_uframes_t period);
 
 
 // main function
@@ -70,7 +73,7 @@ int main(){
     while (true) {
         bool keepRunning = menuFunction(effectChoice);
         if (!keepRunning) break;
-        stream(userData, audioParams, effectChoice, inHandle, outHandle);
+        stream(userData, audioParams, effectChoice, inHandle, outHandle, period);
     }
 }
 
@@ -180,7 +183,8 @@ void resetData(RtUserData &ud){
 
 void stream(RtUserData &userData, AudioParams &audioParams,
             EffectChoices &effectChoice,
-            snd_pcm_t *inHandle, snd_pcm_t *outHandle){
+            snd_pcm_t *inHandle, snd_pcm_t *outHandle,
+	    snd_pcm_uframes_t period){
     // wait until user stops this session; then return to menu
     printf("Streaming... Press ENTER to stop and return to menu\n");	
 

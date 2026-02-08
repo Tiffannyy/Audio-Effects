@@ -8,6 +8,7 @@
 */
 
 #include <iostream>
+#include "../include/menu.h"
 
 // Choice function
 void choiceSelect(char choice, EffectChoices &effectChoice, bool &validChoice, bool &exitFlag){

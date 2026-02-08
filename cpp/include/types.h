@@ -14,6 +14,7 @@
 #define TYPES_H
 
 #include <cmath>
+#include <vector>
 
 // User Defined Data
 typedef int16_t SAMPLE;
@@ -33,7 +34,7 @@ struct EffectChoices{
 
 // Parameters to pass to callback functions
 struct AudioParams{
-    static constexpr float PI = 3.14159265358979323846;;
+    static constexpr float PI = 3.14159265358979323846;
 
     float MIX           = 0.5;      // Mix between original and delayed signals
 

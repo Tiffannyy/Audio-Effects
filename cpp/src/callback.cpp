@@ -12,7 +12,7 @@
 #include <cmath>
 
 // Overdrive function
-SAMPLE applyOverdrive(SAMPLE inputSample, RtUserData *ud) {
+float applyOverdrive(float inputSample, RtUserData *ud) {
     
     // Effect parameters
     float drive    = ud->params->OD_DRIVE;
@@ -21,21 +21,21 @@ SAMPLE applyOverdrive(SAMPLE inputSample, RtUserData *ud) {
     // Apply transfer characteristic
     float intensityFactor = 1 / (odFactor*drive + 0.01);
     float normalizeFactor = 1 / (intensityFactor + 1);
-    SAMPLE outputSample = (inputSample / (intensityFactor + abs(inputSample)));
+    float outputSample = (inputSample / (intensityFactor + abs(inputSample)));
     outputSample /= normalizeFactor;
 
     return outputSample;
 }
 
 // Distortion function
-SAMPLE applyDistortion(SAMPLE inputSample, RtUserData *ud) {
+float applyDistortion(float inputSample, RtUserData *ud) {
     
     // Effect parameters
     float drive      = ud->params->DIST_DRIVE;
     float distFactor = ud->params->DIST_FACTOR;
 
     // Apply transfer characteristic
-    SAMPLE outputSample = (1 + (distFactor-1)*drive) * inputSample;
+    float outputSample = (1 + (distFactor-1)*drive) * inputSample;
     if (outputSample > 1.0f) outputSample = 1.0f;
     if (outputSample < -1.0f) outputSample = -1.0f;
 
@@ -43,7 +43,7 @@ SAMPLE applyDistortion(SAMPLE inputSample, RtUserData *ud) {
 }
 
 // Fuzz function
-SAMPLE applyFuzz(SAMPLE inputSample, RtUserData *ud) {
+float applyFuzz(float inputSample, RtUserData *ud) {
     
     // Effect parameters
     float drive       = ud->params->FUZZ_DRIVE;
@@ -63,7 +63,7 @@ SAMPLE applyFuzz(SAMPLE inputSample, RtUserData *ud) {
         normalizeFactor = (1 + biasFactor) / (intensityFactor + abs(1 + biasFactor));
     else
         normalizeFactor = (1 - biasFactor) / (intensityFactor + abs(-1 + biasFactor));
-    SAMPLE outputSample = (inputSample + biasFactor) / (intensityFactor + abs(inputSample + biasFactor));
+    float outputSample = (inputSample + biasFactor) / (intensityFactor + abs(inputSample + biasFactor));
     outputSample /= normalizeFactor;
 
     return outputSample;
@@ -109,7 +109,7 @@ float applyDCFilter(float inputSample, RtUserData *ud) {
 }
 
 // Callback Function
-static inline void processBlock(const float* in, float* out,
+void processBlock(const SAMPLE* in, SAMPLE* out,
                      unsigned long framesPerBuffer,
                      RtUserData* ud){
 
