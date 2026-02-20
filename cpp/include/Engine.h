@@ -1,7 +1,7 @@
 /*
  * Engine.h
  * 
- * Tiffany Liu
+ * Tiffany Liu, Nathaniel Kalaw
  * 
  * 9 February 2026
 */
@@ -19,9 +19,94 @@
 #define FRAMES_PER_BUFFER 256
 #define BUFFER_MULT 4
 
+#define EFFECT_SELECTION_MAX       7
+#define TREMOLO_SELECTION_MAX      3
+#define DELAY_SELECTION_MAX        2
+#define REVERB_SELECTION_MAX       2
+#define BITCRUSH_SELECTION_MAX     2
+#define OVERDRIVE_SELECTION_MAX    2
+#define DISTORTION_SELECTION_MAX   2
+#define FUZZ_SELECTION_MAX         2
+
 const bool DEBUG = 0;
 const char* DEVICE_NAME = "hw:0,0";
 
+enum MenuMode {
+    EFFECT_SELECTION_MODE = 0,   // User is choosing from effects
+    AUDIO_PARAM_SELECTION_MODE,  // User is choosing parameters of an effect
+    AUDIO_PARAM_VALUE_MODE       // User is adjusting a parameter value
+};
+
+enum EffectSelection {
+    NO_EFFECT = 0,
+    TREMOLO,
+    DELAY,
+    REVERB,
+    BITCRUSH,
+    OVERDRIVE,
+    DISTORTION,
+    FUZZ
+};
+
+enum TremoloSelection {
+    TREMOLO_FREQ = 0, 
+    TREMOLO_DEPTH,
+    TREMOLO_PHASE,
+    TREMOLO_BACK
+};
+    
+enum DelaySelection {
+    DELAY_MS = 0,
+    DELAY_FEEDBACK,
+    DELAY_BACK
+};
+
+enum ReverbSelection {
+    REVERB_TAPS = 0,
+    REVERB_DECAY,
+    REVERB_BACK
+};
+
+enum BitcrushSelection {
+    BITCRUSH_DOWNSAMPLE = 0,
+    BITCRUSH_DEPTH,
+    BITCRUSH_BACK
+};
+
+enum OverdriveSelection {
+    OVERDRIVE_DRIVE = 0,
+    OVERDRIVE_TONE,
+    OVERDRIVE_BACK
+};
+
+enum DistortionSelection {
+    DISTORTION_DRIVE = 0,
+    DISTORTION_TONE,
+    DISTORTION_BACK
+};
+
+enum FuzzSelection {
+    FUZZ_DRIVE = 0,
+    FUZZ_TONE,
+    FUZZ_BACK
+};
+
+struct AudioParamSelection {
+    TremoloSelection    TREMOLO    = TREMOLO_FREQ;
+    DelaySelection      DELAY      = DELAY_MS;
+    ReverbSelection     REVERB     = REVERB_TAPS;
+    BitcrushSelection   BITCRUSH   = BITCRUSH_DOWNSAMPLE;
+    OverdriveSelection  OVERDRIVE  = OVERDRIVE_DRIVE;
+    DistortionSelection DISTORTION = DISTORTION_DRIVE;
+    FuzzSelection       FUZZ       = FUZZ_DRIVE;
+};
+
+extern MenuMode            MENU_MODE;
+extern EffectSelection     EFFECT_SELECTION;
+extern AudioParamSelection AUDIO_PARAM_SELECTION;
+
+
+// pybind module
 namespace py = pybind11;
 class Engine {
 public:
@@ -57,6 +142,8 @@ public:
     void setFuzzDrive(float v);
     void setFuzzTone(float v);
 
+    void readPeripherals();
+
 private:
     void streamLoop();
     std::thread audioThread;
@@ -71,7 +158,6 @@ private:
     snd_pcm_t *outHandle = nullptr;
     snd_pcm_uframes_t period{};
     snd_pcm_uframes_t buffer{};
-
 }
 
 PYBIND11_MODULE (engine, handler) {
@@ -97,4 +183,5 @@ PYBIND11_MODULE (engine, handler) {
         .def("set_dist_tone", &Engine::setDistTone)
         .def("set_fuzz_drive", &Engine::setFuzzDrive)
         .def("set_fuzz_tone", &Engine::setFuzzTone)
+        .def("read_peripherals", &Engine::readPeripherals)
 }
