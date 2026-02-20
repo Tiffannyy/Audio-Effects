@@ -16,19 +16,68 @@
 
 
 Engine::Engine(){
+    period = FRAMES_PER_BUFFER;
+    buffer = FRAMES_PER_BUFFER * BUFFER_MULT;
+
+    if (setupPCM(DEVICE_NAME, &inHandle,
+                 SND_PCM_STREAM_CAPTURE,
+                 2, audioParams.SAMPLE_RATE,
+                 period, buffer) < 0){
+        throw std::runtime_error("Failed to setup input PCM")
+    }
+
+    if (setupPCM(DEVICE_NAME, &outHandle,
+                 SND_PCM_STREAM_PLAYBACK,
+                 2, audioParams.SAMPLE_RATE,
+                 period, buffer) < 0){
+        throw std::runtime_error("Failed to setup output PCM")
+    }
+
+    snd_pcm_nonblock(inHandle, 1);
+    snd_pcm_nonblock(outHandle, 1);
 }
 
 
 Engine::~Engine(){
+    stop();
+    if (inHandle){
+        snd_pcm_close(inHandle);
+        inHandle = nullptr;
+    }
+
+    if (outHandle){
+        snd_pcm_close(outHandle);
+        outHandle = nullptr;
+    }
 }
 
 
-Engine::start(){
-
+void Engine::start(){
+    if (running.load()) return;
+    initData(userData, audioParams, effectChoice);
+    streamLoop();
 }
 
-Engine::stop(){
 
+void Engine::stop(){
+    running.store(false);
+    if (audioThread.joinable())
+        audioThread.join();
+}
+
+
+void Engine::streamLoop(){
+    running.store(true);
+
+    audioThread = std::thread([this] {
+        // only one thread at a time
+        std::lock_guard<std::mutex> lock(paramMutex);
+
+        stream(userData, audioParams,
+            effectChoice, inHandle,
+            outHandle, period,
+            running);
+    });
 }
 
 

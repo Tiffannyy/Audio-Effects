@@ -147,8 +147,13 @@ void runEncoderButtonISR(void) {
 }
 
 
-// TODO: Make safe close peripheral function
-// int close_peripherals(void) {};
+int close_peripherals(void) {
+
+
+
+
+
+};
 
 
 
@@ -204,6 +209,7 @@ double currPressTime, prevPressTime;
 // Peripheral variables
 pthread_t potentiometerThread, encoderThread;
 PeripheralData peripheralData;
+bool peripheralRunning = true;
 
 
 // ============================================================
@@ -251,6 +257,7 @@ int initializePeripherals(void) {
     prevPressTime = getCurrTimestamp();
         
     /* Initiaize and run threads for peripherals */
+    peripheralRunning = true;
     int rc = pthread_create(&potentiometerThread, NULL, runPotentiometerThread, NULL);
     if (rc) {
         printf("Failed to create potentiometer thread. (%d\n)", rc);
@@ -267,7 +274,7 @@ int initializePeripherals(void) {
 
 
 void* runPotentiometerThread(void* args) {
-    while (1) { 
+    while (peripheralRunning) { 
         peripheralData.VOLUME_VALUE = (255 - readPotentiometer(VOLUME_KNOB)) / 255.0;
         peripheralData.MIX_VALUE = (255 - readPotentiometer(MIX_KNOB)) / 255.0;
     }
@@ -275,7 +282,7 @@ void* runPotentiometerThread(void* args) {
 
 
 void* runEncoderThread(void* args) {
-    while (1) {
+    while (peripheralRunning) {
 
         int dtLast = digitalRead(DT_PIN);
         int dtCurr;
@@ -306,10 +313,11 @@ void runEncoderButtonISR(void) {
 }
 
 
-// TODO: Make safe close peripheral function
-// int close_peripherals(void) {};
-
-
+int closePeripherals(void) {    
+    peripheralRunning = false;
+    pthread_join(runPotentiometerThread, NULL);
+    pthread_join(runEncoderThread, NULL);
+}
 
 
 
