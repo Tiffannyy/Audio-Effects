@@ -119,8 +119,7 @@ public:
     void start();
     void stop();
     void setEffect(EffectChoices effect);
-    void updateEffectChoice(void);
-
+    
     // Parameter functions
     void setVolume(float v);
     void setMix(float v);
@@ -139,6 +138,7 @@ public:
     void adjustDistTone(int inc);
     void adjustFuzzDrive(int inc);
     void adjustFuzzTone(int inc);
+    void updateEffectChoice(void);
 
     // Peripheral functions
     void readPeripherals(void);

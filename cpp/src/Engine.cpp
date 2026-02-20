@@ -23,6 +23,15 @@ Engine::~Engine(){
 }
 
 
+Engine::start(){
+
+}
+
+Engine::stop(){
+
+}
+
+
 // ============================================================
 // [PARAMETER ADJUSTMENT]
 
@@ -152,22 +161,6 @@ void Engine::adjustFuzzTone(int inc){
 }
 
 
-// ============================================================
-// [READING PERIPHERALS]
-
-
-void Engine::readPeripherals(void) {
-    readPotentiometers();
-    readEncoder();
-    readButton();
-}
-
-
-void Engine::readPotentiometers(void) {
-    setVolume(peripheralData.VOLUME_VALUE);
-    setMix(peripheralData.MIX_VALUE);
-}
-
 void Engine::updateEffectChoice(void){
     effectChoice.norm = false;
     effectChoice.trem = false;
@@ -208,6 +201,24 @@ void Engine::updateEffectChoice(void){
             break;
     }
 }
+
+
+// ============================================================
+// [READING PERIPHERALS]
+
+
+void Engine::readPeripherals(void) {
+    readPotentiometers();
+    readEncoder();
+    readButton();
+}
+
+
+void Engine::readPotentiometers(void) {
+    setVolume(peripheralData.VOLUME_VALUE);
+    setMix(peripheralData.MIX_VALUE);
+}
+
     
 void Engine::readEncoder(void) {
     
