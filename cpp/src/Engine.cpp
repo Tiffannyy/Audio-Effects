@@ -6,16 +6,9 @@
  * 12 February 2026
 */
 
+#include <stdio.h>
 #include "../include/Engine.h"
 #include "../include/peripherals.h"
-
-// ============================================================
-// [VARIABLES]
-
-
-MenuMode            MENU_MODE        = EFFECT_SELECTION_MODE;
-EffectSelection     EFFECT_SELECTION = NO_EFFECT;
-AudioParamSelection AUDIO_PARAM_SELECTION;
 
 
 // ============================================================
@@ -175,7 +168,7 @@ void Engine::readPotentiometers(void) {
     setMix(peripheralData.MIX_VALUE);
 }
 
-void Engine::updateEffectChoice(){
+void Engine::updateEffectChoice(void){
     effectChoice.norm = false;
     effectChoice.trem = false;
     effectChoice.delay = false;

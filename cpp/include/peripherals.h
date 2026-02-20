@@ -16,13 +16,13 @@
 
 
 struct PeripheralData {
-	float volumeValue = 0.0f;
-	float mixValue = 0.0f;
-	short encoderTurned  = 0; // -1 = turned left, 0 = idle, 1 = turned right
-	bool  encoderPressed = false;
+	float VOLUME_VALUE = 0.0f;
+	float MIX_VALUE = 0.0f;
+	short ENCODER_TURNED  = 0; // -1 = turned left, 0 = idle, 1 = turned right
+	bool  ENCODER_PRESSED = false;
 };
 
-extern PeripheralData PERIPHERAL_DATA;
+extern PeripheralData peripheralData;
 
 
 // ============================================================

@@ -109,7 +109,7 @@ void resetData(RtUserData &ud){
     ud.bitcrushSample = 0.0f;
 
     if (ud.params)
-    	ud.params->tremPhase = 0.0f;
+    	ud.params->TREM_PHASE = 0.0f;
 }
 
 

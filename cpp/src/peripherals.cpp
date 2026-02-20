@@ -44,7 +44,7 @@ double currPressTime, prevPressTime;
 
 // Peripheral variables
 pthread_t potentiometerThread, encoderThread;
-PeripheralData PERIPHERAL_DATA;
+PeripheralData peripheralData;
 
 
 // ============================================================
@@ -109,8 +109,8 @@ int initializePeripherals(void) {
 
 void* runPotentiometerThread(void* args) {
     while (1) { 
-        PERIPHERAL_DATA.volumeValue = (255 - readPotentiometer(VOLUME_KNOB)) / 255.0;
-        PERIPHERAL_DATA.mixValue = (255 - readPotentiometer(MIX_KNOB)) / 255.0;
+        peripheralData.VOLUME_VALUE = (255 - readPotentiometer(VOLUME_KNOB)) / 255.0;
+        peripheralData.MIX_VALUE = (255 - readPotentiometer(MIX_KNOB)) / 255.0;
     }
 }
 
@@ -129,9 +129,9 @@ void* runEncoderThread(void* args) {
         if (flag == 1) {
             flag = 0;
             if (dtLast == 0 && dtCurr == 1) // Turned left
-                PERIPHERAL_DATA.encoderTurned = -1;
+                peripheralData.ENCODER_TURNED = -1;
             if (dtLast == 1 && dtCurr == 0) // Turned right
-                PERIPHERAL_DATA.encoderTurned = 1;
+                peripheralData.ENCODER_TURNED = 1;
         }
 
     }
@@ -141,7 +141,7 @@ void* runEncoderThread(void* args) {
 void runEncoderButtonISR(void) {
     currPressTime = getCurrTimestamp();
     if ((currPressTime - prevPressTime)*1000 > DEBOUNCE_MS) {
-        PERIPHERAL_DATA.encoderPressed = true;
+        peripheralData.ENCODER_PRESSED = true;
         prevPressTime = currPressTime;
     }
 }
@@ -203,7 +203,7 @@ double currPressTime, prevPressTime;
 
 // Peripheral variables
 pthread_t potentiometerThread, encoderThread;
-PeripheralData PERIPHERAL_DATA;
+PeripheralData peripheralData;
 
 
 // ============================================================
@@ -268,8 +268,8 @@ int initializePeripherals(void) {
 
 void* runPotentiometerThread(void* args) {
     while (1) { 
-        PERIPHERAL_DATA.volumeValue = (255 - readPotentiometer(VOLUME_KNOB)) / 255.0;
-        PERIPHERAL_DATA.mixValue = (255 - readPotentiometer(MIX_KNOB)) / 255.0;
+        peripheralData.VOLUME_VALUE = (255 - readPotentiometer(VOLUME_KNOB)) / 255.0;
+        peripheralData.MIX_VALUE = (255 - readPotentiometer(MIX_KNOB)) / 255.0;
     }
 }
 
@@ -288,9 +288,9 @@ void* runEncoderThread(void* args) {
         if (flag == 1) {
             flag = 0;
             if (dtLast == 0 && dtCurr == 1) // Turned left
-                PERIPHERAL_DATA.encoderTurned = -1;
+                peripheralData.ENCODER_TURNED = -1;
             if (dtLast == 1 && dtCurr == 0) // Turned right
-                PERIPHERAL_DATA.encoderTurned = 1;
+                peripheralData.ENCODER_TURNED = 1;
         }
 
     }
@@ -300,7 +300,7 @@ void* runEncoderThread(void* args) {
 void runEncoderButtonISR(void) {
     currPressTime = getCurrTimestamp();
     if ((currPressTime - prevPressTime)*1000 > DEBOUNCE_MS) {
-        PERIPHERAL_DATA.encoderPressed = true;
+        peripheralData.ENCODER_PRESSED = true;
         prevPressTime = currPressTime;
     }
 }

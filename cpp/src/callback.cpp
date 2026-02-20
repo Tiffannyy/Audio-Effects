@@ -146,7 +146,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             delayedSample = ud->delayBuffer[ud->delayIndex];
         
             // store current input sample in delay buffer
-            ud->delayBuffer[ud->delayIndex] = inFloatL + delayedSample * ud->params->FEEDBACK;
+            ud->delayBuffer[ud->delayIndex] = inFloatL + delayedSample * ud->params->DELAY_FEEDBACK;
             
             // Mix original and delayed signals
             outL = (1.0 - ud->params->MIX) * inFloatL
@@ -187,7 +187,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         // Bitcrush
         else if (ud->effects->bitcrush) {
             // Calculate number of samples to hold
-            float sampleCount = ud->params->SAMPLE_RATE / ud->params->DOWNSAMPLE_RATE;
+            float sampleCount = ud->params->SAMPLE_RATE / ud->params->BITCRUSH_RATE;
 
             // Perform downsampling
             if (ud->bitcrushCount >= sampleCount) {
@@ -202,7 +202,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             }
 	
             float outBitcrush = ud->bitcrushSample;
-            float step = ud->params->BITCRUSH_STEP;
+            float step = 1.0f / (1 << ud->params->BITCRUSH_DEPTH); //ud->params->BITCRUSH_STEP;
 
             // Perform quantization
 	        outBitcrush = roundf(outBitcrush / step) * step;

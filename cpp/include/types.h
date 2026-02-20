@@ -10,11 +10,27 @@
  * 
 */
 
-#ifndef TYPES_H
-#define TYPES_H
+#pragma once
 
 #include <cmath>
 #include <vector>
+#include <stdint.h>
+
+#define PARAM_MIN        0.0
+#define PARAM_MAX        1.0
+#define PARAM_INC        0.05
+#define TREM_FREQ_MIN    2
+#define TREM_FREQ_MAX    20
+#define TREM_FREQ_INC    1
+#define DELAY_MS_MIN     100
+#define DELAY_MS_MAX     1000
+#define DELAY_MS_INC     50
+#define BITCRUSH_RATE_MIN 4000
+#define BITCRUSH_RATE_MAX 16000
+#define BITCRUSH_RATE_INC 500
+#define BITCRUSH_DEPTH_MIN 4
+#define BITCRUSH_DEPTH_MAX 12
+
 
 // User Defined Data
 typedef int16_t SAMPLE;
@@ -34,27 +50,28 @@ struct EffectChoices{
 
 // Parameters to pass to callback functions
 struct AudioParams{
-    static constexpr float PI = 3.14159265358979323846;
-
+    
+    // Volume and mix
+    float VOLUME        = 1.0;
     float MIX           = 0.5;      // Mix between original and delayed signals
 
     // Tremolo
     float TREM_FREQ     = 4.0;      // tremolo frequency (Hz). lower the freq, the slower the tremolo effect vice versa
     float TREM_DEPTH    = 0.5;      // tremolo depth. 0 has no effect, 1 has full effect
-    float tremPhase    = 0.1;
+    float TREM_PHASE    = 0.1;
 
     // Delay
-    static constexpr int DELAY_MS       = 500;      // delay in milliseconds
-    static constexpr float FEEDBACK    = 0.4;     // feedback amount (0 to 1)   -  for delay
+    int   DELAY_MS       = 500;      // delay in milliseconds
+    float DELAY_FEEDBACK = 0.4;     // feedback amount (0 to 1)   -  for delay
 
     // Reverb
-    static const int REVERB_TAPS        = 5;        // number of delay taps for reverb
-    static constexpr float reverbDecay  = 0.6;      // decay factor for reverb
+    static const int REVERB_TAPS  = 5;        // number of delay taps for reverb
+    float REVERB_DECAY = 0.6;      // decay factor for reverb
 
     // Bitcrush
-    int DOWNSAMPLE_RATE = 12000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
-    static constexpr int BIT_DEPTH       = 8;        // Amount of bits to "quantize" sample amplitude
-    static constexpr float BITCRUSH_STEP = 1.0f / (1 << BIT_DEPTH);
+    int BITCRUSH_RATE  = 12000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
+    int BITCRUSH_DEPTH = 8;        // Amount of bits to "quantize" sample amplitude
+    //float BITCRUSH_STEP = 1.0f / (1 << BIT_DEPTH);
 
     // Overdrive
     float OD_DRIVE  = 1;
@@ -94,6 +111,8 @@ struct AudioParams{
     float DC_POLE_COEFFICENT = 0.995;
     float DC_MIX = 0.3;
 
+    // General parameters
+    static constexpr float PI = 3.14159265358979323846;
     static constexpr int CHANNELS   = 2;
     static constexpr int SAMPLE_RATE   = 44100;
 };
@@ -107,11 +126,13 @@ struct RtUserData {
     // Sin
     static constexpr int LUT_SIZE = 1024;      // look up table, less expensive than calling sin every iteration
     float sineLUT[LUT_SIZE];
-    
     RtUserData(){
     	for (int i = 0; i < LUT_SIZE; i++)
     	    sineLUT[i] = sinf(2.0f * AudioParams::PI * i / LUT_SIZE);
     }
+
+    // Tremolo
+    float tremIncrement;   // precomputed 2*pi*f / sampleRate
 
     // Delay
     std::vector<float> delayBuffer;
@@ -129,9 +150,7 @@ struct RtUserData {
     //float sampleCount    = params->SAMPLE_RATE
     int bitcrushCount  = 0;
     float bitcrushSample = 0.0f;
-
-    float tremIncrement;   // precomputed 2*pi*f / sampleRate
-
+    
     // Fuzz
     float fuzzSampleAvg = 0.0f;
     int fuzzSampleCount = (params->FUZZ_ATTACK / 1000) * params->SAMPLE_RATE;
@@ -149,4 +168,4 @@ struct RtUserData {
 
 extern EffectChoices effectChoice;
 
-#endif
+
