@@ -1,17 +1,25 @@
 /*
  * Engine.cpp
  *
- * Tiffany Liu
- * 9 February 2026
+ * Tiffany Liu, Nathaniel Kalaw
+ * 
+ * 12 February 2026
 */
 
-#include <stdio.h>
-#include "Engine_test.h"
-#include "peripherals.h"
+#include "../include/Engine.h"
+#include "../include/peripherals.h"
+
+// ============================================================
+// [VARIABLES]
+
+
+MenuMode            MENU_MODE        = EFFECT_SELECTION_MODE;
+EffectSelection     EFFECT_SELECTION = NO_EFFECT;
+AudioParamSelection AUDIO_PARAM_SELECTION;
 
 
 // ============================================================
-// [ENGINE]
+// [FUNCTIONS]
 
 
 Engine::Engine(){
