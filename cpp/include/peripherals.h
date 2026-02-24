@@ -37,7 +37,7 @@ void* runEncoderThread(void* args);
 
 void runEncoderButtonISR(void);
 
-int closePeripherals(void);
+void closePeripherals(void);
 
 
 

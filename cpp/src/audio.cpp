@@ -38,12 +38,14 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
     }
     snd_pcm_prepare(*handle);
 
+    /*
     if (DEBUG){
         snd_pcm_uframes_t actual_period, actual_buffer;
         snd_pcm_hw_params_get_period_size(params, &actual_period, 0);
         snd_pcm_hw_params_get_buffer_size(params, &actual_buffer);
         printf("Period: %lu, Buffer: %lu\n", actual_period, actual_buffer);
     }
+    */
 
     // set sw params
     snd_pcm_sw_params_t* sw_params;
@@ -74,7 +76,7 @@ void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectCho
  
     ud.tremIncrement = 2.0 * audioParams.PI * audioParams.TREM_FREQ / (float)AudioParams::SAMPLE_RATE;
  
-    ud.delaySize = max((float)1, AudioParams::DELAY_MS * (float)AudioParams::SAMPLE_RATE / 1000);
+    ud.delaySize = std::max((float)1, audioParams.DELAY_MS * (float)AudioParams::SAMPLE_RATE / 1000);
     ud.delayBuffer.assign(ud.delaySize, 0.0f);
     ud.delayIndex = 0;
  
@@ -115,8 +117,12 @@ void resetData(RtUserData &ud){
 void stream(RtUserData &userData, AudioParams &audioParams,
                 EffectChoices &effectChoice,
                 snd_pcm_t *inHandle, snd_pcm_t *outHandle,
-	            snd_pcm_uframes_t period,
-                std::atomic<bool> &running){
+	            snd_pcm_uframes_t period) {
+                //std::atomic<bool> &running){
+                
+    //temporary
+    printf("Streaming... Press ENTER to stop and return to menu\n");	
+    bool streaming = true;
 
     std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
     std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
@@ -125,7 +131,8 @@ void stream(RtUserData &userData, AudioParams &audioParams,
     snd_pcm_poll_descriptors(inHandle, pfds, 1);
     snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
 
-    while (running.load(std::memory_order_relaxed)){
+    //while (running.load(std::memory_order_relaxed)){
+    while (streaming) {
         int ret = poll(pfds, 2, -1);
         if (ret <= 0)
             continue;

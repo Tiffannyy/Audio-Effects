@@ -9,7 +9,7 @@
 #pragma once
 
 #include "audio.h"
-#include <pybind11/pybind11.h>
+//#include <pybind11/pybind11.h>
 #include <alsa/asoundlib.h>
 #include <thread>
 #include <mutex>
@@ -29,7 +29,7 @@
 #define FUZZ_SELECTION_MAX         2
 
 const bool DEBUG = 0;
-const char* DEVICE_NAME = "hw:0,0";
+//const char* DEVICE_NAME = "hw:0,0";
 
 
 // ============================================================
@@ -110,7 +110,8 @@ struct AudioParamSelection {
 
 
 // pybind module
-namespace py = pybind11;
+//namespace py = pybind11;
+
 class Engine {
 public:
     Engine();
@@ -147,7 +148,7 @@ public:
 private:
     void streamLoop();
     std::thread audioThread;
-    std::atomic<bool> running(false);
+    std::atomic<bool> running{false};
 
     std::mutex paramMutex;
     AudioParams audioParams;
@@ -168,9 +169,9 @@ private:
     MenuMode            menuMode = EFFECT_SELECTION_MODE;
     EffectSelection     effectSelection = NO_EFFECT;
     AudioParamSelection audioParamSelection;
-}
+};
 
-
+/*
 PYBIND11_MODULE (engine, handler) {
     py::class_<Engine>(handler, "Engine")
         .def(py::init<>())
@@ -198,6 +199,7 @@ PYBIND11_MODULE (engine, handler) {
         .def("adjust_fuzz_tone", &Engine::adjustFuzzTone)
         .def("read_peripherals", &Engine::readPeripherals)
 }
+*/
 
 
 

@@ -16,6 +16,7 @@
 
 
 Engine::Engine(){
+    /*
     period = FRAMES_PER_BUFFER;
     buffer = FRAMES_PER_BUFFER * BUFFER_MULT;
 
@@ -23,22 +24,24 @@ Engine::Engine(){
                  SND_PCM_STREAM_CAPTURE,
                  2, audioParams.SAMPLE_RATE,
                  period, buffer) < 0){
-        throw std::runtime_error("Failed to setup input PCM")
+        throw std::runtime_error("Failed to setup input PCM");
     }
 
     if (setupPCM(DEVICE_NAME, &outHandle,
                  SND_PCM_STREAM_PLAYBACK,
                  2, audioParams.SAMPLE_RATE,
                  period, buffer) < 0){
-        throw std::runtime_error("Failed to setup output PCM")
+        throw std::runtime_error("Failed to setup output PCM");
     }
 
     snd_pcm_nonblock(inHandle, 1);
     snd_pcm_nonblock(outHandle, 1);
+    */
 }
 
 
 Engine::~Engine(){
+    /*
     stop();
     if (inHandle){
         snd_pcm_close(inHandle);
@@ -49,24 +52,30 @@ Engine::~Engine(){
         snd_pcm_close(outHandle);
         outHandle = nullptr;
     }
+    */
 }
 
 
 void Engine::start(){
+    /*
     if (running.load()) return;
     initData(userData, audioParams, effectChoice);
     streamLoop();
+    */
 }
 
 
 void Engine::stop(){
+    /*
     running.store(false);
     if (audioThread.joinable())
         audioThread.join();
+    */
 }
 
 
 void Engine::streamLoop(){
+    /*
     running.store(true);
 
     audioThread = std::thread([this] {
@@ -75,9 +84,10 @@ void Engine::streamLoop(){
 
         stream(userData, audioParams,
             effectChoice, inHandle,
-            outHandle, period,
-            running);
+            outHandle, period);
+            //running);
     });
+    */
 }
 
 
