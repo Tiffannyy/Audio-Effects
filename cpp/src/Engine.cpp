@@ -2,43 +2,50 @@
  * Engine.cpp
  *
  * Tiffany Liu, Nathaniel Kalaw
- * 
- * 12 February 2026
+ * 24 February 2026
 */
 
 #include <stdio.h>
 #include "../include/Engine.h"
 #include "../include/peripherals.h"
 
+#define ENGINE_DEBUG
+
 
 // ============================================================
 // [FUNCTIONS]
 
 
-Engine::Engine(){
+Engine::Engine(const char* inputDevice, const char* outputDevice){
+    
     period = FRAMES_PER_BUFFER;
     buffer = FRAMES_PER_BUFFER * BUFFER_MULT;
 
-    if (setupPCM(DEVICE_NAME, &inHandle,
+    if (setupPCM(inputDevice, &inHandle,
                  SND_PCM_STREAM_CAPTURE,
                  2, audioParams.SAMPLE_RATE,
                  period, buffer) < 0){
-        throw std::runtime_error("Failed to setup input PCM")
+        throw std::runtime_error("Failed to setup input PCM");
     }
 
-    if (setupPCM(DEVICE_NAME, &outHandle,
+    if (setupPCM(outputDevice, &outHandle,
                  SND_PCM_STREAM_PLAYBACK,
                  2, audioParams.SAMPLE_RATE,
                  period, buffer) < 0){
-        throw std::runtime_error("Failed to setup output PCM")
+        throw std::runtime_error("Failed to setup output PCM");
     }
 
     snd_pcm_nonblock(inHandle, 1);
     snd_pcm_nonblock(outHandle, 1);
+    
+    #ifdef ENGINE_DEBUG
+    printf("Engine successfully initialized input and output PCM devices.\n");
+    #endif
 }
 
 
 Engine::~Engine(){
+    /*
     stop();
     if (inHandle){
         snd_pcm_close(inHandle);
@@ -49,24 +56,60 @@ Engine::~Engine(){
         snd_pcm_close(outHandle);
         outHandle = nullptr;
     }
+    */
 }
 
 
 void Engine::start(){
-    if (running.load()) return;
+    
+    // if (running.load()) return;
+    
     initData(userData, audioParams, effectChoice);
-    streamLoop();
+    
+    // Initialize peripherals via wiringPi
+    if (initializePeripherals() < 0) {
+        printf("Failed to setup wiringPi peripherals.\n");
+        exit(-1);
+    }
+    
+    // Initialize threads for individual tasks
+    peripheralThread = std::thread(&Engine::runPeripheralThread, this);
+    guiThread = std::thread(&Engine::runGUIThread, this);
+    audioThread = std::thread(&Engine::runStreamLoop, this);
 }
 
 
 void Engine::stop(){
+    /*
     running.store(false);
     if (audioThread.joinable())
         audioThread.join();
+    */
+    
+    // closePeripherals()
 }
 
 
-void Engine::streamLoop(){
+void Engine::runPeripheralThread(void) {
+    while (1) {
+        readPeripherals();
+    }
+}
+
+
+void Engine::runGUIThread(void) {
+    system("clear");
+    while (1) {
+        printEngineState();
+    }
+}
+
+
+void Engine::runStreamLoop(){
+
+    stream(userData, audioParams, effectChoice, inHandle, outHandle, period);
+
+    /*
     running.store(true);
 
     audioThread = std::thread([this] {
@@ -75,9 +118,10 @@ void Engine::streamLoop(){
 
         stream(userData, audioParams,
             effectChoice, inHandle,
-            outHandle, period,
-            running);
+            outHandle, period);
+            //running);
     });
+    */
 }
 
 

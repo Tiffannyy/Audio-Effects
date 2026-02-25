@@ -2,7 +2,7 @@
  * peripherals.h
  * 
  * Nathaniel Kalaw
- * 9 February 2026
+ * 24 February 2026
  * 
  * Description: Functions for handling GPIO peripherals
  * via wiringPi.
@@ -37,7 +37,7 @@ void* runEncoderThread(void* args);
 
 void runEncoderButtonISR(void);
 
-int closePeripherals(void);
+void closePeripherals(void);
 
 
 

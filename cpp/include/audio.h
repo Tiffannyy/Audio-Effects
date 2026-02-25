@@ -2,7 +2,7 @@
  * audio.h
  * 
  * Tiffany Liu
- * 9 February 2026
+ * 24 February 2026
  * 
  * Contains initialization, reset, and stream functions for engine
 */
@@ -13,10 +13,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
+#include <alsa/asoundlib.h>
 #include <algorithm>
 #include <unistd.h>
 #include <atomic>
-#include <vector.h>
+#include <vector>
+
+#define FRAMES_PER_BUFFER 256
+#define BUFFER_MULT 4
+
 
 int setupPCM(const char* device, snd_pcm_t** handle,
             snd_pcm_stream_t stream, unsigned int channels,
@@ -31,5 +36,5 @@ void resetData(RtUserData &ud);
 void stream(RtUserData &userData, AudioParams &audioParams,
             EffectChoices &effectChoice,
             snd_pcm_t *inHandle, snd_pcm_t *outHandle,
-	        snd_pcm_uframes_t period,
-            std::atomic<bool> &running);
+	        snd_pcm_uframes_t period);
+            //std::atomic<bool> &running);
