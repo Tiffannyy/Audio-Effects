@@ -14,7 +14,9 @@
 
 // ============================================================
 // [FUNCTIONS]
-
+void Engine::printEngineState(void);
+void Engine::readPotentiometers(void);
+void Engine::readEncoder(void);
 
 Engine::Engine(const char* inputDevice, const char* outputDevice){
     
@@ -108,7 +110,7 @@ void Engine::runGUIThread(void) {
 void Engine::runStreamLoop(){
     running.store(true);
     while(running.load())
-    	stream(userData, audioParams, effectChoice, inHandle, outHandle, period, running);
+    	stream(userData, audioParams, inHandle, outHandle, period, running);
 }
 
 

@@ -118,7 +118,6 @@ void resetData(RtUserData &ud){
 
 
 void stream(RtUserData &userData, AudioParams &audioParams,
-                EffectChoices &effectChoice,
                 snd_pcm_t *inHandle, snd_pcm_t *outHandle,
 	            snd_pcm_uframes_t period,
                 std::atomic<bool> &running){

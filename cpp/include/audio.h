@@ -34,8 +34,7 @@ void initData(RtUserData &ud, AudioParams &audioParams,
 void resetData(RtUserData &ud);
 
 void stream(RtUserData &userData,
-	    AudioParams &audioParams,
-            EffectChoices &effectChoice,
+	        AudioParams &audioParams,
             snd_pcm_t *inHandle, snd_pcm_t *outHandle,
 	        snd_pcm_uframes_t period,
             std::atomic<bool> &running);
