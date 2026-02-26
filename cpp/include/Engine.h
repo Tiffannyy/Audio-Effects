@@ -148,20 +148,6 @@ private:
     void runGUIThread(void);
     void runStreamLoop();
     std::atomic<bool> running{false};
-    
-    // Peripheral functions 
-    void readPotentiometers(void);
-    void readEncoder(void);
-    void readButton(void);
-    void printEngineState(void); // for debugging
-
-private:
-    // Threads for individual tasks
-    std::thread peripheralThread, guiThread, audioThread;
-    void runPeripheralThread(void);
-    void runGUIThread(void);
-    void runStreamLoop();
-    std::atomic<bool> running{false};
 
     std::mutex paramMutex;
     AudioParams audioParams;

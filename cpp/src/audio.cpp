@@ -79,7 +79,7 @@ void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectCho
  
     ud.tremIncrement = 2.0 * audioParams.PI * tremFreq / (float)AudioParams::SAMPLE_RATE;
  
-    ud.delaySize = max((float)1, AudioParams::DELAY_MS * (float)AudioParams::SAMPLE_RATE / 1000);
+    ud.delaySize = std::max((float)1, audioParams.DELAY_MS.load() * (float)AudioParams::SAMPLE_RATE / 1000);
     ud.delayBuffer.assign(ud.delaySize, 0.0f);
     ud.delayIndex = 0;
  
@@ -131,9 +131,9 @@ void stream(RtUserData &userData, AudioParams &audioParams,
 //    snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
 
     while (running.load(std::memory_order_relaxed)){
-        int ret = poll(pfds, 2, -1);
-        if (ret <= 0)
-            continue;
+        // int ret = poll(pfds, 2, -1);
+        // if (ret <= 0)
+        //     continue;
         snd_pcm_sframes_t framesRead =
             snd_pcm_readi(inHandle, inputBlock.data(), period);
         
