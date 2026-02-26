@@ -14,10 +14,6 @@
 
 // ============================================================
 // [FUNCTIONS]
-void Engine::printEngineState(void);
-void Engine::readPotentiometers(void);
-void Engine::readEncoder(void);
-
 Engine::Engine(const char* inputDevice, const char* outputDevice){
     
     period = FRAMES_PER_BUFFER;

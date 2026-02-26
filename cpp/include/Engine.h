@@ -142,6 +142,10 @@ public:
     void readPeripherals();
 
 private:
+    void readEngineState();
+    void readPotentiometers();
+    void readEncoder();
+    
     // Threads for individual tasks
     std::thread peripheralThread, guiThread, audioThread;
     void runPeripheralThread(void);
