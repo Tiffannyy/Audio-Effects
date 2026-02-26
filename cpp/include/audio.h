@@ -22,6 +22,7 @@
 #define FRAMES_PER_BUFFER 256
 #define BUFFER_MULT 4
 
+
 int setupPCM(const char* device, snd_pcm_t** handle,
             snd_pcm_stream_t stream, unsigned int channels,
             unsigned int rate, snd_pcm_uframes_t period,
@@ -32,8 +33,10 @@ void initData(RtUserData &ud, AudioParams &audioParams,
 
 void resetData(RtUserData &ud);
 
-void stream(RtUserData &userData, AudioParams &audioParams,
+void stream(RtUserData &userData,
+	    AudioParams &audioParams,
             EffectChoices &effectChoice,
             snd_pcm_t *inHandle, snd_pcm_t *outHandle,
-	        snd_pcm_uframes_t period);
-            //std::atomic<bool> &running);
+	        snd_pcm_uframes_t period,
+              std::atomic<bool> &running);
+

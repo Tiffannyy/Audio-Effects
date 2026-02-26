@@ -10,24 +10,26 @@
 #include "../include/Engine.h"
 #include "../include/peripherals.h"
 
+//#define ENGINE_DEBUG
+
 
 // ============================================================
 // [FUNCTIONS]
 
 
-Engine::Engine(){
-    /*
+Engine::Engine(const char* inputDevice, const char* outputDevice){
+    
     period = FRAMES_PER_BUFFER;
     buffer = FRAMES_PER_BUFFER * BUFFER_MULT;
 
-    if (setupPCM(DEVICE_NAME, &inHandle,
+    if (setupPCM(inputDevice, &inHandle,
                  SND_PCM_STREAM_CAPTURE,
                  2, audioParams.SAMPLE_RATE,
                  period, buffer) < 0){
         throw std::runtime_error("Failed to setup input PCM");
     }
 
-    if (setupPCM(DEVICE_NAME, &outHandle,
+    if (setupPCM(outputDevice, &outHandle,
                  SND_PCM_STREAM_PLAYBACK,
                  2, audioParams.SAMPLE_RATE,
                  period, buffer) < 0){
@@ -36,12 +38,14 @@ Engine::Engine(){
 
     snd_pcm_nonblock(inHandle, 1);
     snd_pcm_nonblock(outHandle, 1);
-    */
+    
+    #ifdef ENGINE_DEBUG
+    printf("Engine successfully initialized input and output PCM devices.\n");
+    #endif
 }
 
 
 Engine::~Engine(){
-    /*
     stop();
     if (inHandle){
         snd_pcm_close(inHandle);
@@ -52,42 +56,58 @@ Engine::~Engine(){
         snd_pcm_close(outHandle);
         outHandle = nullptr;
     }
-    */
 }
 
 
 void Engine::start(){
-    /*
-    if (running.load()) return;
+    
     initData(userData, audioParams, effectChoice);
-    streamLoop();
-    */
+    
+    // Initialize peripherals via wiringPi
+    if (initializePeripherals() < 0) {
+        printf("Failed to setup wiringPi peripherals.\n");
+        exit(-1);
+    }
+    
+    // Initialize threads for individual tasks
+    peripheralThread = std::thread(&Engine::runPeripheralThread, this);
+    guiThread = std::thread(&Engine::runGUIThread, this);
+    audioThread = std::thread(&Engine::runStreamLoop, this);
 }
 
 
 void Engine::stop(){
-    /*
+    
+    // Join threads
     running.store(false);
-    if (audioThread.joinable())
-        audioThread.join();
-    */
+    peripheralThread.join();
+    guiThread.join();
+    audioThread.join();
+    
+    // Close periperhals
+    closePeripherals();
 }
 
 
-void Engine::streamLoop(){
-    /*
+void Engine::runPeripheralThread(void) {
+    while (running.load(std::memory_order_relaxed)) {
+        readPeripherals();
+    }
+}
+
+
+void Engine::runGUIThread(void) {
+    system("clear");
+    while (running.load(std::memory_order_relaxed)) {
+        printEngineState();
+    }
+}
+
+
+void Engine::runStreamLoop(){
     running.store(true);
-
-    audioThread = std::thread([this] {
-        // only one thread at a time
-        std::lock_guard<std::mutex> lock(paramMutex);
-
-        stream(userData, audioParams,
-            effectChoice, inHandle,
-            outHandle, period);
-            //running);
-    });
-    */
+    while(running.load())
+    	stream(userData, audioParams, effectChoice, inHandle, outHandle, period, running);
 }
 
 
@@ -296,7 +316,8 @@ void Engine::readEncoder(void) {
         // Effect parameter selection
         else if (menuMode == AUDIO_PARAM_SELECTION_MODE) {
             switch (effectSelection) {
-                
+		case NO_EFFECT:
+		    break;
                 case TREMOLO: {
                     int index = audioParamSelection.TREMOLO;
                     index += peripheralData.ENCODER_TURNED;
@@ -370,60 +391,67 @@ void Engine::readEncoder(void) {
             int inc = peripheralData.ENCODER_TURNED;    
             
             // Increment or decrement the effect parameters in the audioParams structure  
-            switch (effectSelection) {
-                
-                case TREMOLO: {
-                    switch (audioParamSelection.TREMOLO) {
+            switch (effectSelection){
+		case NO_EFFECT:
+		    break;
+		case TREMOLO: {
+                    switch (audioParamSelection.TREMOLO){
                         case TREMOLO_FREQ:  adjustTremFreq(inc); break;
                         case TREMOLO_DEPTH: adjustTremDepth(inc); break;
+			case TREMOLO_BACK: break;
                         //case TREMOLO_PHASE: /*... */ break;
-                    } break;
-                }
+		    }break;
+		}
 
                 case DELAY: {
-                    switch (audioParamSelection.DELAY) {
+                    switch (audioParamSelection.DELAY){
                         case DELAY_MS:       adjustDelayMs(inc); break;
                         case DELAY_FEEDBACK: adjustDelayFeedback(inc); break;
-                    } break;
-                }
-                
+			case DELAY_BACK: break;
+	   	     }break;
+		}
+               
                 case REVERB: {
-                    switch (audioParamSelection.REVERB) {
+                    switch (audioParamSelection.REVERB){
                         //case REVERB_TAPS: /*... */ break;
                         case REVERB_DECAY: adjustReverbDecay(inc); break;
-                    } break;
-                }
+		        case REVERB_BACK: break;
+		    }break;
+		}
                 
-                case BITCRUSH: {
-                    switch (audioParamSelection.BITCRUSH) {
-                        case BITCRUSH_RATE: adjustBitcrushRate(inc);break;
+		case BITCRUSH: {
+                    switch (audioParamSelection.BITCRUSH){
+                        case BITCRUSH_RATE: adjustBitcrushRate(inc); break;
                         case BITCRUSH_DEPTH: adjustBitcrushDepth(inc); break;
-                    } break;
-                }
+			case BITCRUSH_BACK: break;		    
+		    }break;
+		}
                 
                 case OVERDRIVE: {
-                    switch (audioParamSelection.OVERDRIVE) {
+                    switch (audioParamSelection.OVERDRIVE){
                         case OVERDRIVE_DRIVE: adjustOdDrive(inc); break;
                         case OVERDRIVE_TONE: adjustOdTone(inc); break;
-                    } break;
-                }
-                
+			case OVERDRIVE_BACK: break;
+                    }break;
+		}
+
                 case DISTORTION: {
-                    switch (audioParamSelection.DISTORTION) {
+                    switch (audioParamSelection.DISTORTION){
                         case DISTORTION_DRIVE: adjustDistDrive(inc); break;
-                        case DISTORTION_TONE: adjustDistTone(inc);break;
-                    } break;
-                }
-                
+                        case DISTORTION_TONE: adjustDistTone(inc); break;
+			case DISTORTION_BACK: break;
+	    	    }break;
+		}
+
                 case FUZZ: {
-                    switch (audioParamSelection.FUZZ) {
+                    switch (audioParamSelection.FUZZ){
                         case FUZZ_DRIVE: adjustFuzzDrive(inc); break;
                         case FUZZ_TONE: adjustFuzzTone(inc); break;
-                    } break;
-                }
-            } // [END SWITCH]
-        } // [END ADJUSTING PARAMETERS]
-        
+			case FUZZ_BACK: break;
+                    }break;
+		}
+	    }// [END ADJUSTING PARAMETERS]
+	} 
         // Reset encoder turned flag
         peripheralData.ENCODER_TURNED = 0;
         
@@ -448,7 +476,8 @@ void Engine::readButton(void) {
             
             // Must check if "go back" or parameter was selected
             switch (effectSelection) {
-                
+              	case NO_EFFECT: break;
+
                 case TREMOLO: {
                     if (audioParamSelection.TREMOLO == TREMOLO_BACK) {
                         audioParamSelection.TREMOLO = static_cast<TremoloSelection>(0);
@@ -552,61 +581,61 @@ void Engine::printEngineState(void) {
         case TREMOLO:    
             printf("Tremolo | "); 
             switch (audioParamSelection.TREMOLO) {
-                case TREMOLO_FREQ:  printf("Freq: %.2f", audioParams.TREM_FREQ); break;
-                case TREMOLO_DEPTH: printf("Depth: %.2f", audioParams.TREM_DEPTH); break;
+                case TREMOLO_FREQ:  printf("Freq: %.2f", audioParams.TREM_FREQ.load()); break;
+                case TREMOLO_DEPTH: printf("Depth: %.2f", audioParams.TREM_DEPTH.load()); break;
                 case TREMOLO_BACK:  printf("Back"); break;
             }
             break;
         case DELAY:      
             printf("Delay | "); 
             switch (audioParamSelection.DELAY) {
-                case DELAY_MS:       printf("Ms: %d", audioParams.DELAY_MS); break;
-                case DELAY_FEEDBACK: printf("Feedback: %.2f", audioParams.DELAY_FEEDBACK); break;
+                case DELAY_MS:       printf("Ms: %d", audioParams.DELAY_MS.load()); break;
+                case DELAY_FEEDBACK: printf("Feedback: %.2f", audioParams.DELAY_FEEDBACK.load()); break;
                 case DELAY_BACK:     printf("Back"); break;
             }
             break;
         case REVERB:     
             printf("Reverb | "); 
             switch (audioParamSelection.REVERB) {
-                case REVERB_DECAY: printf("Decay: %.2f", audioParams.REVERB_DECAY); break;
+                case REVERB_DECAY: printf("Decay: %.2f", audioParams.REVERB_DECAY.load()); break;
                 case REVERB_BACK:  printf("Back"); break;
             }
             break;
         case BITCRUSH:   
             printf("Bitcrush | "); 
             switch (audioParamSelection.BITCRUSH) {
-                case BITCRUSH_RATE:  printf("Rate: %d", audioParams.BITCRUSH_RATE); break;
-                case BITCRUSH_DEPTH: printf("Depth: %d", audioParams.BITCRUSH_DEPTH); break;
+                case BITCRUSH_RATE:  printf("Rate: %d", audioParams.BITCRUSH_RATE.load()); break;
+                case BITCRUSH_DEPTH: printf("Depth: %d", audioParams.BITCRUSH_DEPTH.load()); break;
                 case BITCRUSH_BACK:  printf("Back"); break;
             }
             break;
         case OVERDRIVE:  
             printf("Overdrive | "); 
             switch (audioParamSelection.OVERDRIVE) {
-                case OVERDRIVE_DRIVE:  printf("Drive: %.2f", audioParams.OD_DRIVE); break;
-                case OVERDRIVE_TONE:   printf("Tone: %.2f", audioParams.OD_TONE); break;
+                case OVERDRIVE_DRIVE:  printf("Drive: %.2f", audioParams.OD_DRIVE.load()); break;
+                case OVERDRIVE_TONE:   printf("Tone: %.2f", audioParams.OD_TONE.load()); break;
                 case OVERDRIVE_BACK:   printf("Back"); break;
             }
             break;
         case DISTORTION: 
             printf("Distortion | "); 
             switch (audioParamSelection.DISTORTION) {
-                case DISTORTION_DRIVE:  printf("Drive: %.2f", audioParams.DIST_DRIVE); break;
-                case DISTORTION_TONE:   printf("Tone: %.2f", audioParams.DIST_TONE); break;
+                case DISTORTION_DRIVE:  printf("Drive: %.2f", audioParams.DIST_DRIVE.load()); break;
+                case DISTORTION_TONE:   printf("Tone: %.2f", audioParams.DIST_TONE.load()); break;
                 case DISTORTION_BACK:   printf("Back"); break;
             }
             break;
         case FUZZ:       
             printf("Fuzz | "); 
             switch (audioParamSelection.FUZZ) {
-                case FUZZ_DRIVE:  printf("Drive: %.2f", audioParams.FUZZ_DRIVE); break;
-                case FUZZ_TONE:   printf("Tone: %.2f", audioParams.FUZZ_TONE); break;
+                case FUZZ_DRIVE:  printf("Drive: %.2f", audioParams.FUZZ_DRIVE.load()); break;
+                case FUZZ_TONE:   printf("Tone: %.2f", audioParams.FUZZ_TONE.load()); break;
                 case FUZZ_BACK:   printf("Back"); break;
             }
             break;
     }
     
     printf("                             \n");
-    printf("Vol: %.2f | Mix: %.2f\n", audioParams.VOLUME, audioParams.MIX);
+    printf("Vol: %.2f | Mix: %.2f\n", audioParams.VOLUME.load(), audioParams.MIX.load());
 
 }

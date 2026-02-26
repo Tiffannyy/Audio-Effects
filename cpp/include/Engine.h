@@ -12,12 +12,10 @@
 //#include <pybind11/pybind11.h>
 #include <alsa/asoundlib.h>
 #include <thread>
+#include <pthread.h>
 #include <mutex>
 #include <stdexcept>
 #include <poll.h>
-
-#define FRAMES_PER_BUFFER 256
-#define BUFFER_MULT 4
 
 #define EFFECT_SELECTION_MAX       7
 #define TREMOLO_SELECTION_MAX      2
@@ -27,9 +25,6 @@
 #define OVERDRIVE_SELECTION_MAX    2
 #define DISTORTION_SELECTION_MAX   2
 #define FUZZ_SELECTION_MAX         2
-
-const bool DEBUG = 0;
-//const char* DEVICE_NAME = "hw:0,0";
 
 
 // ============================================================
@@ -114,7 +109,7 @@ struct AudioParamSelection {
 
 class Engine {
 public:
-    Engine();
+    Engine(const char* inputDevice, const char* outputDevice);
     ~Engine();
 
     void start();
@@ -126,10 +121,8 @@ public:
     void setMix(float v);
     void adjustTremFreq(int inc);
     void adjustTremDepth(int inc);
-    //void adjustTremPhase(int inc);
     void adjustDelayMs(int inc);
     void adjustDelayFeedback(int inc);
-    //void adjustReverbTaps(int inc);
     void adjustReverbDecay(int inc);
     void adjustBitcrushRate(int inc);
     void adjustBitcrushDepth(int inc);
@@ -141,65 +134,36 @@ public:
     void adjustFuzzTone(int inc);
     void updateEffectChoice(void);
 
-    // Peripheral functions
-    void readPeripherals(void);
-    void printEngineState(void); // for debugging
+    void readPeripherals();
 
 private:
-    void streamLoop();
-    std::thread audioThread;
+    // Threads for individual tasks
+    std::thread peripheralThread, guiThread, audioThread;
+    void runPeripheralThread(void);
+    void runGUIThread(void);
+    void runStreamLoop();
     std::atomic<bool> running{false};
+    
+    // Peripheral functions 
+    void readPotentiometers(void);
+    void readEncoder(void);
+    void readButton(void);
+    void printEngineState(void); // for debugging
 
-    std::mutex paramMutex;
+    // Audio parameters
     AudioParams audioParams;
     EffectChoices effectChoice;
     RtUserData userData;
 
+    // ALSA variables
     snd_pcm_t *inHandle = nullptr;
     snd_pcm_t *outHandle = nullptr;
     snd_pcm_uframes_t period{};
     snd_pcm_uframes_t buffer{};
 
-    // Peripheral functions
-    void readPotentiometers(void);
-    void readEncoder(void);
-    void readButton(void);
-
     // Menu variables
     MenuMode            menuMode = EFFECT_SELECTION_MODE;
     EffectSelection     effectSelection = NO_EFFECT;
-    AudioParamSelection audioParamSelection;
+    AudioParamSelection audioParamSelection;    
 };
-
-/*
-PYBIND11_MODULE (engine, handler) {
-    py::class_<Engine>(handler, "Engine")
-        .def(py::init<>())
-
-        .def("start", &Engine::start)
-        .def("stop", &Engine::stop)
-        .def("set_effect", &Engine::setEffect)
-
-        .def("set_volume", &Engine::setVolume)
-        .def("set_mix", &Engine::setMix)
-        .def("adjust_trem_freq", &Engine::adjustTremFreq)
-        .def("adjust_trem_depth", &Engine::adjustTremDepth)
-        //.def("set_trem_phase", &Engine::setTremPhase)
-        .def("adjust_delay_ms", &Engine::adjustDelayMs)
-        .def("adjust_delay_feedback", &Engine::adjustDelayFeedback)
-         //.def("set_reverb_taps", &Engine::setReverbTaps)
-        .def("adjust_reverb_decay", &Engine::adjustReverbDecay)
-        .def("adjust_bitcrush_rate", &Engine::adjustBitcrushRate)
-        .def("adjust_bitcrush_depth", &Engine::adjustBitcrushDepth)
-        .def("adjust_od_drive", &Engine::adjustOdDrive)
-        .def("adjust_od_tone", &Engine::adjustOdTone)
-        .def("adjust_dist_drive", &Engine::adjustDistDrive)
-        .def("adjust_dist_tone", &Engine::adjustDistTone)
-        .def("adjust_fuzz_drive", &Engine::adjustFuzzDrive)
-        .def("adjust_fuzz_tone", &Engine::adjustFuzzTone)
-        .def("read_peripherals", &Engine::readPeripherals)
-}
-*/
-
-
 

@@ -9,6 +9,7 @@
 
 #include "../include/audio.h"
 
+
 // setup and open pcm
 int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
 	     unsigned int channels, unsigned int rate,
@@ -73,10 +74,12 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
 void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectChoice){
     ud.params = &audioParams;
     ud.effects = &effectChoice;
+
+    float tremFreq = audioParams.TREM_FREQ.load();
  
-    ud.tremIncrement = 2.0 * audioParams.PI * audioParams.TREM_FREQ / (float)AudioParams::SAMPLE_RATE;
+    ud.tremIncrement = 2.0 * audioParams.PI * tremFreq / (float)AudioParams::SAMPLE_RATE;
  
-    ud.delaySize = std::max((float)1, audioParams.DELAY_MS * (float)AudioParams::SAMPLE_RATE / 1000);
+    ud.delaySize = std::max((float)1, DELAY_MS_MAX * (float)AudioParams::SAMPLE_RATE / 1000);
     ud.delayBuffer.assign(ud.delaySize, 0.0f);
     ud.delayIndex = 0;
  
@@ -117,30 +120,53 @@ void resetData(RtUserData &ud){
 void stream(RtUserData &userData, AudioParams &audioParams,
                 EffectChoices &effectChoice,
                 snd_pcm_t *inHandle, snd_pcm_t *outHandle,
-	            snd_pcm_uframes_t period) {
-                //std::atomic<bool> &running){
-                
-    //temporary
-    printf("Streaming... Press ENTER to stop and return to menu\n");	
-    bool streaming = true;
-
+	            snd_pcm_uframes_t period,
+                std::atomic<bool> &running){
+    (void) effectChoice; 
     std::vector<SAMPLE> inputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
     std::vector<SAMPLE> outputBlock(FRAMES_PER_BUFFER * audioParams.CHANNELS);
 
-    struct pollfd pfds[2];
-    snd_pcm_poll_descriptors(inHandle, pfds, 1);
-    snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
+//    struct pollfd pfds[2];
+//    snd_pcm_poll_descriptors(inHandle, pfds, 1);
+//    snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
 
-    //while (running.load(std::memory_order_relaxed)){
-    while (streaming) {
-        int ret = poll(pfds, 2, -1);
-        if (ret <= 0)
-            continue;
+    while (running.load(std::memory_order_relaxed)) {
+    //while (streaming) {
+        //int ret = poll(pfds, 2, -1);
+        //if (ret <= 0)
+        //    continue;
         snd_pcm_sframes_t framesRead =
-        snd_pcm_readi(inHandle, inputBlock.data(), period);
+            snd_pcm_readi(inHandle, inputBlock.data(), period);
         
         if (framesRead == -EAGAIN)
             continue;
+
+	// param snapshot
+	ParamSnapshot params{
+	    audioParams.MIX.load(),
+	    static_cast<float>(audioParams.SAMPLE_RATE),
+
+	    audioParams.TREM_FREQ.load(),
+	    audioParams.TREM_DEPTH.load(),
+
+	    audioParams.DELAY_MS.load(),
+	    audioParams.DELAY_FEEDBACK.load(),
+
+	    audioParams.REVERB_DECAY.load(),
+
+	    audioParams.BITCRUSH_RATE.load(),
+	    audioParams.BITCRUSH_DEPTH.load(),
+
+	    audioParams.OD_DRIVE.load(),
+	    audioParams.OD_TONE.load(),
+
+	    audioParams.DIST_DRIVE.load(),
+	    audioParams.DIST_TONE.load(),
+
+	    audioParams.FUZZ_DRIVE.load(),
+	    audioParams.FUZZ_TONE.load(),
+
+	};
 
         if (framesRead == -EPIPE) {     // xrun
             fprintf(stderr, "XRUN (capture)\n");
@@ -156,9 +182,9 @@ void stream(RtUserData &userData, AudioParams &audioParams,
             inputBlock.data(),
             outputBlock.data(),
             framesRead,
-            &userData
-            );
-
+            &userData,
+    	    params
+	    );
         // write to output
         snd_pcm_sframes_t framesWritten =
             snd_pcm_writei(outHandle, outputBlock.data(), framesRead);
