@@ -28,9 +28,6 @@
 #define DISTORTION_SELECTION_MAX   2
 #define FUZZ_SELECTION_MAX         2
 
-const bool DEBUG = 0;
-const char* DEVICE_NAME = "hw:0,0";
-
 
 // ============================================================
 // [VARIABLES]
