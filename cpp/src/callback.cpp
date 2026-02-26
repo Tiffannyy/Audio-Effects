@@ -11,28 +11,24 @@
 #include "../include/callback.h"
 
 // Overdrive function
-float applyOverdrive(float inputSample, RtUserData *ud) {
-    
-    // Effect parameters
-    float drive    = ud->params->OD_DRIVE;
-    float odFactor = ud->params->OD_FACTOR;
+float applyOverdrive(float inputSample,
+		     float drive,
+		     float odFactor) {
 
     // Apply transfer characteristic
-    float intensityFactor = 1 / (odFactor*drive + 0.01);
-    float normalizeFactor = 1 / (intensityFactor + 1);
-    float outputSample = (inputSample / (intensityFactor + abs(inputSample)));
+    float intensityFactor = 1.0 / (odFactor*drive + 0.01f);
+    float normalizeFactor = 1.0 / (intensityFactor + 1.0f);
+    float outputSample = (inputSample / (intensityFactor + std::fabs(inputSample)));
     outputSample /= normalizeFactor;
 
     return outputSample;
 }
 
 // Distortion function
-float applyDistortion(float inputSample, RtUserData *ud) {
+float applyDistortion(float inputSample,
+		      float drive,
+		      float distFactor) {
     
-    // Effect parameters
-    float drive      = ud->params->DIST_DRIVE;
-    float distFactor = ud->params->DIST_FACTOR;
-
     // Apply transfer characteristic
     float outputSample = (1 + (distFactor-1)*drive) * inputSample;
     if (outputSample > 1.0f) outputSample = 1.0f;
@@ -42,21 +38,18 @@ float applyDistortion(float inputSample, RtUserData *ud) {
 }
 
 // Fuzz function
-float applyFuzz(float inputSample, RtUserData *ud) {
-    
-    // Effect parameters
-    float drive       = ud->params->FUZZ_DRIVE;
-    float fuzzFactor  = ud->params->FUZZ_FACTOR;
-    float fuzzBias    = ud->params->FUZZ_MAX_BIAS;
-    int   fuzzAttack  = ud->fuzzSampleCount;
+float applyFuzz(float inputSample,
+		float drive,
+		float fuzzFactor,
+		RtUserData* ud) {
 
     // Adjust average amplitude for reactive biasing
-    ud->fuzzSampleAvg = ud->fuzzSampleAvg + (fmin(1.414*abs(inputSample), 1.0) - ud->fuzzSampleAvg) / fuzzAttack;
-    fuzzBias *= ud->fuzzSampleAvg;
+    ud->fuzzSampleAvg = ud->fuzzSampleAvg + (fmin(1.414*abs(inputSample), 1.0) - ud->fuzzSampleAvg) / ud->params->FUZZ_ATTACK;
+    ud->params->FUZZ_MAX_BIAS *= ud->fuzzSampleAvg;
 
     // Apply transfer characteristic
     float intensityFactor = 1 / (fuzzFactor*drive + 0.01);
-    float biasFactor      = fuzzBias * drive;
+    float biasFactor      = ud->params->FUZZ_MAX_BIAS * drive;
     float normalizeFactor;
     if (inputSample >= -biasFactor)
         normalizeFactor = (1 + biasFactor) / (intensityFactor + abs(1 + biasFactor));
@@ -110,7 +103,10 @@ float applyDCFilter(float inputSample, RtUserData *ud) {
 // Callback Function
 void processBlock(const SAMPLE* in, SAMPLE* out,
                      unsigned long framesPerBuffer,
-                     RtUserData* ud){
+                     RtUserData* ud,
+		     const ParamSnapshot& params){
+
+    const float tremIncrement = 2.0f * M_PI * params.tremFreq / params.sampleRate;
 
     for(unsigned long i = 0; i < framesPerBuffer; i++){
         float inL = *in++;
@@ -128,10 +124,9 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         // Tremolo effect
         else if (ud->effects->trem){
             int j = (int)(ud->params->TREM_PHASE * (ud->LUT_SIZE / (2.0f * M_PI))) & (ud->LUT_SIZE - 1);
-            float trem =    (1.0 - ud->params->TREM_DEPTH) + ud->params->TREM_DEPTH
-                                * (0.5 * (1.0 + ud->sineLUT[j]));
+            float trem = (1.0 - params.tremDepth) + params.tremDepth * (0.5 * (1.0 + ud->sineLUT[j]));
             
-            ud->params->TREM_PHASE += ud->tremIncrement;
+             ud->params->TREM_PHASE += tremIncrement;
 
             if (ud->params->TREM_PHASE >= 2.0 * M_PI) ud->params->TREM_PHASE -= 2.0 * M_PI;
         
@@ -146,11 +141,11 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             delayedSample = ud->delayBuffer[ud->delayIndex];
         
             // store current input sample in delay buffer
-            ud->delayBuffer[ud->delayIndex] = inFloatL + delayedSample * ud->params->DELAY_FEEDBACK;
+            ud->delayBuffer[ud->delayIndex] = inFloatL + delayedSample * params.delayFeedback;
             
             // Mix original and delayed signals
-            outL = (1.0 - ud->params->MIX) * inFloatL
-                        + ud->params->MIX * delayedSample;
+            outL = (1.0 - params.mix) * inFloatL
+                        + params.mix * delayedSample;
             
             // Increment and wrap delay index
             ud->delayIndex++;
@@ -170,10 +165,10 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
                 outReverb += delayedSample * ud->reverbGain[tap];
 
                 // update buffer with input + feedback
-                ud->reverbBuffer[ud->reverbIndex[tap]] = inFloatL + feedbackSum * ud->params->REVERB_DECAY;
+                ud->reverbBuffer[ud->reverbIndex[tap]] = inFloatL + feedbackSum * params.reverbDecay;
 	        }
 
-            ud->reverbBuffer[ud->reverbIndex[0]] = inFloatL + feedbackSum * ud->params->REVERB_DECAY;
+            ud->reverbBuffer[ud->reverbIndex[0]] = inFloatL + feedbackSum * params.reverbDecay;
 
             for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
                 ud->reverbIndex[tap]++;
@@ -181,13 +176,13 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
                     ud->reverbIndex[tap] = 0;
             }
 
-            outL = (1.0f - ud->params->MIX) * inFloatL + ud->params->MIX * outReverb;
+            outL = (1.0f - params.mix) * inFloatL + params.mix * outReverb;
             }
 
         // Bitcrush
         else if (ud->effects->bitcrush) {
             // Calculate number of samples to hold
-            float sampleCount = ud->params->SAMPLE_RATE / ud->params->BITCRUSH_RATE;
+            float sampleCount = params.sampleRate / params.bitcrushRate;
 
             // Perform downsampling
             if (ud->bitcrushCount >= sampleCount) {
@@ -202,12 +197,12 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             }
 	
             float outBitcrush = ud->bitcrushSample;
-            float step = 1.0f / (1 << ud->params->BITCRUSH_DEPTH); //ud->params->BITCRUSH_STEP;
+            float step = 1.0f / (1 << params.bitcrushDepth); //ud->params->BITCRUSH_STEP;
 
             // Perform quantization
 	        outBitcrush = roundf(outBitcrush / step) * step;
 	        // Apply mix amount
-            outL = (1.0f - ud->params->MIX) * inFloatL + ud->params->MIX * outBitcrush;
+            outL = (1.0f - params.mix) * inFloatL + params.mix * outBitcrush;
         }
 
         // Overdrive
@@ -215,17 +210,18 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
-            float distortedSample = applyOverdrive(inFloatL, ud);
+            float distortedSample = applyOverdrive(inFloatL, params.odDrive, ud->params->OD_FACTOR);
             float filteredSample = applyToneFilter(distortedSample, ud,
                                                 ud->odToneBuffer,
-                                                ud->params->OD_TONE);
+                                                params.odTone);
+            outputSample = filteredSample;
 
             // Adjust for overflow
             if (outputSample > 1.0f) outputSample = 1.0f;
             else if (outputSample < 1.0f) outputSample = -1.0f;
 
             // Apply mix amount
-            outL = (1.0f - ud->params->MIX) * inFloatL + ud->params->MIX * outputSample;
+            outL = (1.0f - params.mix) * inFloatL + params.mix * outputSample;
         }
 
         // Distortion
@@ -233,8 +229,8 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
-            float distortedSample = applyDistortion(inFloatL, ud);
-            float filteredSample = applyToneFilter(distortedSample, ud, ud->distToneBuffer, ud->params->DIST_TONE);
+            float distortedSample = applyDistortion(inFloatL, params.distDrive, ud->params->DIST_FACTOR);
+            float filteredSample = applyToneFilter(distortedSample, ud, ud->distToneBuffer, params.distTone);
             outputSample = filteredSample;
 
             // Adjust for overflow
@@ -242,7 +238,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             else if (outputSample < -1.0f) outputSample = -1.0f;
 
             // Apply mix amount
-            outL = (1.0f - ud->params->MIX) * inFloatL + ud->params->MIX * outputSample;
+            outL = (1.0f - params.mix) * inFloatL + params.mix * outputSample;
         }
 
         // Fuzz
@@ -250,8 +246,8 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
-            float distortedSample = applyFuzz(inFloatL, ud);
-            float filteredSample = applyToneFilter(distortedSample, ud, ud->fuzzToneBuffer, ud->params->FUZZ_TONE);
+            float distortedSample = applyFuzz(inFloatL, params.fuzzDrive, ud->params->FUZZ_FACTOR, ud);
+            float filteredSample = applyToneFilter(distortedSample, ud, ud->fuzzToneBuffer, params.fuzzTone);
             float dcFilteredSample = applyDCFilter(filteredSample, ud);
             outputSample = dcFilteredSample;
 
@@ -271,3 +267,4 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         *out++ = toSample(outR);
     }
 }
+

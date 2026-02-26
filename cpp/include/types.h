@@ -15,6 +15,7 @@
 #include <cmath>
 #include <vector>
 #include <stdint.h>
+#include <atomic>
 
 #define PARAM_MIN        0.0
 #define PARAM_MAX        1.0
@@ -52,40 +53,38 @@ struct EffectChoices{
 struct AudioParams{
     
     // Volume and mix
-    float VOLUME        = 1.0;
-    float MIX           = 0.5;      // Mix between original and delayed signals
+    std::atomic<float> 	VOLUME		{1.0};
+    std::atomic<float>  MIX           	{0.5};      // Mix between original and delayed signals
 
     // Tremolo
-    float TREM_FREQ     = 4.0;      // tremolo frequency (Hz). lower the freq, the slower the tremolo effect vice versa
-    float TREM_DEPTH    = 0.5;      // tremolo depth. 0 has no effect, 1 has full effect
-    float TREM_PHASE    = 0.1;
-
+    std::atomic<float>  TREM_FREQ     	{4.0};      // tremolo frequency (Hz). lower the freq, the slower the tremolo effect vice versa
+    std::atomic<float>  TREM_DEPTH      {0.5};      // tremolo depth. 0 has no effect, 1 has full effect
+    float TREM_PHASE = 0.1;
     // Delay
-    int   DELAY_MS       = 500;      // delay in milliseconds
-    float DELAY_FEEDBACK = 0.4;     // feedback amount (0 to 1)   -  for delay
+    std::atomic<int>   DELAY_MS         {500};      // delay in milliseconds
+    std::atomic<float> DELAY_FEEDBACK   {0.4};     // feedback amount (0 to 1)   -  for delay
 
     // Reverb
     static const int REVERB_TAPS  = 5;        // number of delay taps for reverb
-    float REVERB_DECAY = 0.6;      // decay factor for reverb
+    std::atomic<float> REVERB_DECAY   {0.6};      // decay factor for reverb
 
     // Bitcrush
-    int BITCRUSH_RATE  = 12000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
-    int BITCRUSH_DEPTH = 8;        // Amount of bits to "quantize" sample amplitude
-    //float BITCRUSH_STEP = 1.0f / (1 << BIT_DEPTH);
+    std::atomic<int> BITCRUSH_RATE    {12000};     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
+    std::atomic<int> BITCRUSH_DEPTH   {8};        // Amount of bits to "quantize" sample amplitude
 
     // Overdrive
-    float OD_DRIVE  = 1;
-    float OD_TONE   = 1;
+    std::atomic<float> OD_DRIVE   {1};
+    std::atomic<float> OD_TONE    {1};
     float OD_FACTOR = 3;
 
     // Distortion
-    float DIST_DRIVE  = 1;
-    float DIST_TONE   = 1;
+    std::atomic<float> DIST_DRIVE   {1};
+    std::atomic<float> DIST_TONE    {1};
     float DIST_FACTOR = 3;
 
     // Fuzz
-    float FUZZ_DRIVE    = 1;
-    float FUZZ_TONE     = 1;
+    std::atomic<float> FUZZ_DRIVE     {1};
+    std::atomic<float> FUZZ_TONE     {1};
     float FUZZ_FACTOR   = 20;
     float FUZZ_MAX_BIAS = 0.6;   // Must be between -1 to 1
     static constexpr float FUZZ_ATTACK = 8;  // In milliseconds
@@ -147,7 +146,6 @@ struct RtUserData {
     float reverbGain[AudioParams::REVERB_TAPS];
 
     // Bitcrush
-    //float sampleCount    = params->SAMPLE_RATE
     int bitcrushCount  = 0;
     float bitcrushSample = 0.0f;
     

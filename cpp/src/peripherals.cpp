@@ -71,7 +71,7 @@ int readPotentiometer(int adc_channel) {
 // [FUNCTIONS]
 
 
-int initializePeripherals(void) {
+int initializePeripherals() {
 
     /* Setup potentionmeter ADC */
     if ((adcFD = wiringPiI2CSetup(ADC_ADDRESS)) < 0)
@@ -109,7 +109,7 @@ int initializePeripherals(void) {
 }
 
 
-void* runPotentiometerThread(void* args) {
+void* runPotentiometerThread() {
     while (peripheralRunning) { 
         peripheralData.VOLUME_VALUE = (255 - readPotentiometer(VOLUME_KNOB)) / 255.0;
         peripheralData.MIX_VALUE = (255 - readPotentiometer(MIX_KNOB)) / 255.0;
@@ -118,11 +118,11 @@ void* runPotentiometerThread(void* args) {
 }
 
 
-void* runEncoderThread(void* args) {
+void* runEncoderThread() {
     while (peripheralRunning) {
 
         int dtLast = digitalRead(DT_PIN);
-        int dtCurr;
+        int dtCurr = 0; // TODO: initialize
 
         while (!digitalRead(CLK_PIN)) {
             dtCurr = digitalRead(DT_PIN);
@@ -142,7 +142,7 @@ void* runEncoderThread(void* args) {
 }
 
 
-void runEncoderButtonISR(void) {
+void runEncoderButtonISR() {
     currPressTime = getCurrTimestamp();
     if ((currPressTime - prevPressTime)*1000 > DEBOUNCE_MS) {
         peripheralData.ENCODER_PRESSED = true;
@@ -151,7 +151,7 @@ void runEncoderButtonISR(void) {
 }
 
 
-void closePeripherals(void) {    
+void closePeripherals() {    
     peripheralRunning = false;
     pthread_join(potentiometerThread, NULL);
     pthread_join(encoderThread, NULL);
