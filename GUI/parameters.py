@@ -1,14 +1,11 @@
-from view import (
-                  QVBoxLayout,
-                  QLabel,
-                  QGroupBox,
-                  QSize,
-                  Qt,
-                  QWidget,
-                  QSlider,
-                  QGroupBox,
-                  QDial
-                  )
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QGroupBox,
+    QDial
+)
+from PyQt5.QtCore import Qt
 
 from abc import ABCMeta
 
@@ -16,8 +13,6 @@ class ABCWidgetMeta(ABCMeta, type(QWidget)):
     pass
 
 class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
-    "PLACEHOLDER PANEL"
-    # TODO: Populate with actual effect controls
 
     def __init__(self, effect:str):
         super().__init__()
@@ -65,11 +60,26 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         self.dials[name] = dial
         return dial
 
+    def update_from_engine(self, params):
+        for name, dial in self.dials.items():
+            key = name.lower().replace(" ", "_")
+            if key not in params:
+                continue
+        
+            value = params[key]
+            if isinstance(value, float):
+                value = int(value * 100)
+
+            dial.blockSignals(True)
+            dial.setValue(value)
+            dial.blockSignals(False)
+
 class CleanPanel(EffectPanel):
     def __init__(self, effect='Clean'):
         super().__init__(effect)
         self.params = {
-            'Volume': 50
+            'Volume': 50,
+            'Mix' : 50
         }
         for name, val in self.params.items():
             self.add_dial(name, min_val=0, max_val=100, init_val=val)
@@ -79,6 +89,7 @@ class TremoloPanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
+            'Mix' : 50,
             'Frequency': 50,
             'Depth': 50,
             'Phase': 50
@@ -91,6 +102,7 @@ class DelayPanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
+            'Mix' : 50,
             'Delay': 50,
             'Feedback': 50
         }
@@ -102,6 +114,7 @@ class ReverbPanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
+            'Mix' : 50,
             'Taps': 50,
             'Decay': 50
         }
@@ -113,6 +126,7 @@ class BitcrushPanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
+            'Mix' : 50,
             'Downsample': 50,
             'Bit Depth': 50
         }
@@ -124,6 +138,7 @@ class OverdrivePanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
+            'Mix' : 50,
             'Drive': 50,
             'Tone': 50
         }
@@ -135,6 +150,7 @@ class DistortionPanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
+            'Mix' : 50,
             'Drive': 50,
             'Tone': 50
         }
@@ -146,15 +162,9 @@ class FuzzPanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
+            'Mix' : 50,
             'Drive': 50,
             'Tone': 50
         }
         for name, val in self.params.items():
             self.add_dial(name, min_val=0, max_val=100, init_val=val)
-
-
-
-
-
-    #TODO: implement specific sliders for clean effect
-
