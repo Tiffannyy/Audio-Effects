@@ -18,6 +18,7 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         super().__init__()
         self.name = effect
         self.dials = {}
+        self.params_keys= {}
 
         self.effect_layout = QVBoxLayout()
         self.effect_layout.setContentsMargins(5, 5, 5, 5)
@@ -32,15 +33,13 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         self.param_box = QGroupBox("Parameters")
         self.param_box_layout = QVBoxLayout()
         self.param_box_layout.setSpacing(10)
-        for dial in self.dials:
-            self.param_box_layout.addWidget(dial)
         self.param_box.setLayout(self.param_box_layout)
         self.effect_layout.addWidget(self.param_box, stretch=1)
 
-    def add_dial(self, name:str, min_val=0, max_val=100, init_val=50):
+    def add_dial(self, name:str, val, min_val=0, max_val=100):
         dial = QDial()
         dial.setRange(min_val, max_val)
-        dial.setValue(init_val)
+        dial.setValue(val)
         dial.setNotchesVisible(True)
         dial.setWrapping(False)
         dial.setFixedSize(80, 80)
@@ -72,16 +71,27 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
 
     def update_from_engine(self, params):
         for name, dial in self.dials.items():
-            key = name.lower().replace(" ", "_")
-            if key not in params:
+            key = self.params_keys.get(name)
+            if not key or key not in params:
                 continue
-        
+
             value = params[key]
-            if isinstance(value, float):
+
+            normalized_keys = {
+                "volume", "mix",
+                "trem_freq", "trem_depth",
+                "delay_feedback",
+                "reverb_decay",
+                "od_drive", "od_tone",
+                "dist_drive", "dist_tone",
+                "fuzz_drive", "fuzz_tone"
+            }
+
+            if key in normalized_keys:
                 value = int(value * 100)
 
             dial.blockSignals(True)
-            dial.setValue(value)
+            dial.setValue(int(value))
             dial.blockSignals(False)
 
 class CleanPanel(EffectPanel):
@@ -89,47 +99,66 @@ class CleanPanel(EffectPanel):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
-            'Mix' : 50
+            'Mix': 50
+        }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix'
         }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val)
 
 class TremoloPanel(EffectPanel):
      def __init__(self, effect='Tremolo'):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
-            'Mix' : 50,
+            'Mix': 50,
             'Frequency': 50,
             'Depth': 50,
-            'Phase': 50
+        }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix',
+            'Frequency': 'trem_freq',
+            'Depth': 'trem_depth',
         }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val, min_val=0, max_val=100)
 
 class DelayPanel(EffectPanel):
      def __init__(self, effect='Delay'):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
-            'Mix' : 50,
+            'Mix': 50,
             'Delay': 50,
-            'Feedback': 50
+            'Feedback': 50,
+        }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix',
+            'Delay': 'delay_ms',
+            'Feedback': 'delay_feedback'
         }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val, min_val=0, max_val=100)
 
 class ReverbPanel(EffectPanel):
      def __init__(self, effect='Reverb'):
         super().__init__(effect)
         self.params = {
             'Volume': 50,
-            'Mix' : 50,
-            'Taps': 50,
-            'Decay': 50
+            'Mix': 50,
+            'Decay': 50,
+        }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix',
+            'Decay': 'reverb_decay'
         }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val, min_val=0, max_val=100)
 
 class BitcrushPanel(EffectPanel):
      def __init__(self, effect='Bitcrush'):
@@ -140,8 +169,14 @@ class BitcrushPanel(EffectPanel):
             'Downsample': 50,
             'Bit Depth': 50
         }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix',
+            'Downsample': 'bitcrush_rate',
+            'Bit Depth': 'bitcrush_depth'
+        }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val, min_val=0, max_val=100)
 
 class OverdrivePanel(EffectPanel):
      def __init__(self, effect='Overdrive'):
@@ -152,8 +187,14 @@ class OverdrivePanel(EffectPanel):
             'Drive': 50,
             'Tone': 50
         }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix',
+            'Drive': 'od_drive',
+            'Tone': 'od_tone'
+        }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val, min_val=0, max_val=100)
 
 class DistortionPanel(EffectPanel):
      def __init__(self, effect='Distortion'):
@@ -164,8 +205,14 @@ class DistortionPanel(EffectPanel):
             'Drive': 50,
             'Tone': 50
         }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix',
+            'Drive': 'dist_drive',
+            'Tone': 'dist_tone'
+        }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val, min_val=0, max_val=100)
 
 class FuzzPanel(EffectPanel):
      def __init__(self, effect='Fuzz'):
@@ -176,5 +223,11 @@ class FuzzPanel(EffectPanel):
             'Drive': 50,
             'Tone': 50
         }
+        self.params_keys = {
+            'Volume': 'volume',
+            'Mix' : 'mix',
+            'Drive': 'fuzz_drive',
+            'Tone': 'fuzz_tone'
+        }
         for name, val in self.params.items():
-            self.add_dial(name, min_val=0, max_val=100, init_val=val)
+            self.add_dial(name, val, min_val=0, max_val=100)

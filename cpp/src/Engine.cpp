@@ -92,6 +92,7 @@ void Engine::stop(){
 void Engine::runPeripheralThread(void) {
     while (running.load(std::memory_order_relaxed)) {
         readPeripherals();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
 
@@ -125,7 +126,7 @@ void Engine::setMix(float v) {
 
 
 void Engine::adjustTremFreq(int inc){
-    float v = audioParams.TREM_FREQ;
+    float v = audioParams.TREM_FREQ.load();
     v += inc * TREM_FREQ_INC;
     if (v >= TREM_FREQ_MAX) v = TREM_FREQ_MAX;
     if (v <= TREM_FREQ_MIN) v = TREM_FREQ_MIN;
@@ -326,6 +327,7 @@ void Engine::readPeripherals(void) {
 
 void Engine::readPotentiometers(void) {
     setVolume(peripheralData.VOLUME_VALUE);
+    printf("Pot Volume raw: %f\n", peripheralData.VOLUME_VALUE);
     setMix(peripheralData.MIX_VALUE);
 }
 

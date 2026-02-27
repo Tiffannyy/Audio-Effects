@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QDockWidget,
     QMainWindow,
-    QApplication,
+    QVBoxLayout,
     QListWidget,
     QStackedWidget,
     QStyle,
@@ -37,7 +37,6 @@ class Window(QMainWindow):
         self._add_pages()
 
         # connect selection to panel
-        self.list_widget.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.list_widget.setCurrentRow(0)  # default selection
 
         self._add_sidebar()
@@ -55,7 +54,7 @@ class Window(QMainWindow):
         self.list_widget = QListWidget()
         self.list_widget.setFont(self.sidebar_font)
         items = ["Clean", "Tremolo", "Delay", "Reverb",
-                 "Distortion", "Fuzz", "Overdrive"]
+                 "Bitcrush", "Overdrive", "Distortion", "Fuzz"]
         self.list_widget.addItems(items)
         self.list_widget.setStyleSheet("QListWidget::item { padding: 8px; }")
         self.list_widget.currentRowChanged.connect(self._change_stacked_page)

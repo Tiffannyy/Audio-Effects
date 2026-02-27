@@ -8,7 +8,6 @@
 #pragma once
 
 #include "audio.h"
-//#include <pybind11/pybind11.h>
 #include <alsa/asoundlib.h>
 #include <thread>
 #include <pthread.h>
@@ -178,8 +177,8 @@ private:
     snd_pcm_uframes_t buffer{};
 
     // Menu variables
-    MenuMode            menuMode = EFFECT_SELECTION_MODE;
-    EffectSelection     effectSelection = NO_EFFECT;
+    std::atomic<MenuMode> menuMode = EFFECT_SELECTION_MODE;
+    std::atomic<EffectSelection> effectSelection = NO_EFFECT;
     AudioParamSelection audioParamSelection;    
 };
 

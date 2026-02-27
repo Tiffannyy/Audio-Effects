@@ -4,6 +4,7 @@
 # 29 October 2025
 
 import sys
+import signal
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 from .view import Window
@@ -11,6 +12,7 @@ from .. import engine
 
 class Controller:
     def __init__(self):
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
         self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
         self.engine = engine.Engine("plughw:2,0", "plughw:2,0")
@@ -34,8 +36,8 @@ class Controller:
         sys.exit(self.app.exec())
 
     def shutdown(self):
+        self.timer.stop()
         self.engine.stop()
-        self.app.quit()
 
 
 if __name__ == "__main__":
