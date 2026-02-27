@@ -9,8 +9,8 @@
 
 import sys
 from parameters import *
-from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget,
     QDockWidget,
@@ -18,23 +18,16 @@ from PyQt5.QtWidgets import (
     QApplication,
     QListWidget,
     QStackedWidget,
-    QVBoxLayout,
-    QLabel,
     QStyle,
     QSystemTrayIcon,
     QAction,
-    QMenu,
-    QSlider,
-    QGroupBox,
-    QDial
+    QMenu
 )
 
-
 class Window(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("OmniPedal")
-        self.showFullScreen()
+    def __init__(self, engine):
+        super().__init__(self)
+        self.engine = engine
 
         # TODO: Customize font
         self.sidebar_font = QFont("Arial", 18)
@@ -120,10 +113,10 @@ class Window(QMainWindow):
         self.stack.setCurrentIndex(index)
 
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    # keep window running
-    app.setQuitOnLastWindowClosed(False)
-    window = Window()
-    window.show()
-    app.exec()
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     # keep window running
+#     app.setQuitOnLastWindowClosed(False)
+#     window = Window()
+#     window.show()
+#     app.exec()

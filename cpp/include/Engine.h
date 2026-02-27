@@ -15,6 +15,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <poll.h>
+#include <map>
 
 #define FRAMES_PER_BUFFER 256
 #define BUFFER_MULT 4
