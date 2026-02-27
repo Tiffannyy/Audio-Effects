@@ -9,6 +9,7 @@
 
 #include "../include/audio.h"
 
+#define DEBUG 1
 
 // setup and open pcm
 int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
@@ -39,14 +40,14 @@ int setupPCM(const char* device, snd_pcm_t** handle, snd_pcm_stream_t stream,
     }
     snd_pcm_prepare(*handle);
 
-    /*
+ 
     if (DEBUG){
         snd_pcm_uframes_t actual_period, actual_buffer;
         snd_pcm_hw_params_get_period_size(params, &actual_period, 0);
         snd_pcm_hw_params_get_buffer_size(params, &actual_buffer);
         printf("Period: %lu, Buffer: %lu\n", actual_period, actual_buffer);
     }
-    */
+ 
 
     // set sw params
     snd_pcm_sw_params_t* sw_params;

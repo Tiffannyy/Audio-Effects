@@ -149,7 +149,7 @@ private:
     // Threads for individual tasks
     std::thread peripheralThread, guiThread, audioThread;
     void runPeripheralThread(void);
-    void runGUIThread(void);
+    //void runGUIThread(void);
     void runStreamLoop();
     std::atomic<bool> running{false};
 

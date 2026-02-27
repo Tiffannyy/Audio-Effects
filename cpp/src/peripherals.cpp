@@ -109,7 +109,8 @@ int initializePeripherals() {
 }
 
 
-void* runPotentiometerThread() {
+void* runPotentiometerThread(void* args) {
+    (void)args;
     while (peripheralRunning) { 
         peripheralData.VOLUME_VALUE = (255 - readPotentiometer(VOLUME_KNOB)) / 255.0;
         peripheralData.MIX_VALUE = (255 - readPotentiometer(MIX_KNOB)) / 255.0;
@@ -118,7 +119,8 @@ void* runPotentiometerThread() {
 }
 
 
-void* runEncoderThread() {
+void* runEncoderThread(void* args) {
+    (void)args;
     while (peripheralRunning) {
 
         int dtLast = digitalRead(DT_PIN);

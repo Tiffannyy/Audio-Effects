@@ -8,7 +8,7 @@
 # 29 October 2025
 
 import sys
-from parameters import *
+from .parameters import *
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (
 
 class Window(QMainWindow):
     def __init__(self, engine):
-        super().__init__(self)
+        super().__init__()
         self.engine = engine
 
         # TODO: Customize font

@@ -6,18 +6,18 @@
 import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
-from view import Window
+from .view import Window
 from .. import engine
 
 class Controller:
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
-        self.engine = engine.Engine("hw:1,0", "hw:1,0")
+        self.engine = engine.Engine("plughw:2,0", "plughw:2,0")
         self.engine.start()
 
         self.window = Window(engine)
-        self.window.showFullscreen()
+        self.window.showFullScreen()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_gui)

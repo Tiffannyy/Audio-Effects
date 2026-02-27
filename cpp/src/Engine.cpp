@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include "../include/Engine.h"
 #include "../include/peripherals.h"
+#include "../include/types.h"
+
+extern AudioParams audioParams;
 
 //#define ENGINE_DEBUG
 
@@ -69,7 +72,7 @@ void Engine::start(){
     // Initialize threads for individual tasks
     running.store(true);
     peripheralThread = std::thread(&Engine::runPeripheralThread, this);
-    guiThread = std::thread(&Engine::runGUIThread, this);
+    //guiThread = std::thread(&Engine::runGUIThread, this);
     audioThread = std::thread(&Engine::runStreamLoop, this);
 }
 
@@ -92,13 +95,14 @@ void Engine::runPeripheralThread(void) {
     }
 }
 
-
+/*
 void Engine::runGUIThread(void) {
     system("clear");
     while (running.load(std::memory_order_relaxed)) {
         printEngineState();
     }
 }
+*/
 
 
 void Engine::runStreamLoop(){
@@ -280,23 +284,23 @@ void Engine::updateEffectChoice(void){
 
 // ============================================================
 // [READING PERIPHERALS]
-std::map<std::string, float> getParams(){
+std::map<std::string, float> Engine::getParams(){
     return {
-        {"volume", audioParams.VOLUME.load()},
-        {"mix", audioParams.MIX.load()},
-        {"trem_freq", audioParams.TREM_FREQ.load()},
-        {"trem_depth", audioParams.TREM_DEPTH.load()},
+        {"volume", (float)audioParams.VOLUME.load()},
+        {"mix", (float)audioParams.MIX.load()},
+        {"trem_freq", (float)audioParams.TREM_FREQ.load()},
+        {"trem_depth", (float)audioParams.TREM_DEPTH.load()},
         {"delay_ms", (float)audioParams.DELAY_MS.load()},
-        {"delay_feedback", audioParams.DELAY_FEEDBACK.load()},
-        {"reverb_decay", audioParams.REVERB_DECAY.load()},
+        {"delay_feedback", (float)audioParams.DELAY_FEEDBACK.load()},
+        {"reverb_decay", (float)audioParams.REVERB_DECAY.load()},
         {"bitcrush_rate", (float)audioParams.BITCRUSH_RATE.load()},
         {"bitcrush_depth", (float)audioParams.BITCRUSH_DEPTH.load()},
-        {"od_drive", audioParams.OD_DRIVE.load()},
-        {"od_tone", audioParams.OD_TONE.load()},
-        {"dist_drive", audioParams.DIST_DRIVE.load()},
-        {"dist_tone", audioParams.DIST_TONE.load()},
-        {"fuzz_drive", audioParams.FUZZ_DRIVE.load()},
-        {"fuzz_tone", audioParams.FUZZ_TONE.load()}
+        {"od_drive", (float)audioParams.OD_DRIVE.load()},
+        {"od_tone", (float)audioParams.OD_TONE.load()},
+        {"dist_drive", (float)audioParams.DIST_DRIVE.load()},
+        {"dist_tone", (float)audioParams.DIST_TONE.load()},
+        {"fuzz_drive", (float)audioParams.FUZZ_DRIVE.load()},
+        {"fuzz_tone", (float)audioParams.FUZZ_TONE.load()}
     };
 }
 

@@ -61,7 +61,7 @@ struct AudioParams{
     std::atomic<float>  TREM_DEPTH      {0.5};      // tremolo depth. 0 has no effect, 1 has full effect
     float TREM_PHASE = 0.1;
     // Delay
-    std::atomic<int>   DELAY_MS         {500};      // delay in milliseconds
+    std::atomic<int>   DELAY_MS       {500};      // delay in milliseconds
     std::atomic<float> DELAY_FEEDBACK   {0.4};     // feedback amount (0 to 1)   -  for delay
 
     // Reverb

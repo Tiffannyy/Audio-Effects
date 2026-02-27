@@ -29,18 +29,14 @@ extern PeripheralData peripheralData;
 // [FUNCTIONS]
 
 
-int initializePeripherals(void);
+int initializePeripherals();
 
 void* runPotentiometerThread(void* args);
 
 void* runEncoderThread(void* args);
 
-void runEncoderButtonISR(void);
+void runEncoderButtonISR();
 
-void closePeripherals(void);
-
-
-
-
+void closePeripherals();
 
 
