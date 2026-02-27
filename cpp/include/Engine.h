@@ -137,6 +137,7 @@ public:
     void updateEffectChoice(void);
 
     void readPeripherals();
+    std::map<std::string, float> getParams();
 
 private:
     void printEngineState();

@@ -13,7 +13,7 @@ CFLAGS = -O3 -Wall -Werror -Wextra -shared -std=c++11 -fPIC $(PYTHON_INCLUDES)
 LDFLAGS = -lasound -lwiringPi
 
 # Target Executable
-TARGET = $(MODULE)$(PYTHON_SUFFIX) 
+TARGET = $(MODULE)$(PYTHON_SUFFIX)
 SRCS = cpp/src/binding.cpp \
 	cpp/src/callback.cpp \
 	cpp/src/menu.cpp \
