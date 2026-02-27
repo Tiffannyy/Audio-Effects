@@ -327,7 +327,6 @@ void Engine::readPeripherals(void) {
 
 void Engine::readPotentiometers(void) {
     setVolume(peripheralData.VOLUME_VALUE);
-    printf("Pot Volume raw: %f\n", peripheralData.VOLUME_VALUE);
     setMix(peripheralData.MIX_VALUE);
 }
 

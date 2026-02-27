@@ -147,8 +147,8 @@ private:
     snd_pcm_uframes_t buffer{};
 
     // Menu variables
-    std::atomic<MenuMode> menuMode = EFFECT_SELECTION_MODE;
-    std::atomic<EffectSelection> effectSelection = NO_EFFECT;
+    std::atomic<MenuMode> menuMode{EFFECT_SELECTION_MODE};
+    std::atomic<EffectSelection> effectSelection{NO_EFFECT};
     AudioParamSelection audioParamSelection;   
 
 public:

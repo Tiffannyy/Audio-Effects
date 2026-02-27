@@ -112,14 +112,14 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         float inL = *in++;
         float inR = *in++;
         float inFloatL = toFloat(inL);
-        float inFloatR = toFloat(inR);
+	float inFloatR = toFloat(inR);
 
-    	float outL = inFloatL;
-    	float outR = inFloatR;
+	float monoIn = 0.5f * (inFloatL + inFloatR);
+	float monoOut = monoIn;
 
         // No effect
         if (ud->effects->norm.load())
-            outL = inFloatL;
+            monoOut = monoIn;
 
         // Tremolo effect
         else if (ud->effects->trem.load()){
@@ -130,7 +130,8 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
 
             if (ud->params->TREM_PHASE >= 2.0 * M_PI) ud->params->TREM_PHASE -= 2.0 * M_PI;
         
-            outL = inFloatL * trem; 
+            monoOut = monoIn * trem; 
+
         }
         
 
@@ -141,10 +142,10 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             delayedSample = ud->delayBuffer[ud->delayIndex];
         
             // store current input sample in delay buffer
-            ud->delayBuffer[ud->delayIndex] = inFloatL + delayedSample * params.delayFeedback;
+            ud->delayBuffer[ud->delayIndex] = monoIn + delayedSample * params.delayFeedback;
             
             // Mix original and delayed signals
-            outL = (1.0 - params.mix) * inFloatL
+            monoOut = (1.0 - params.mix) * monoIn
                         + params.mix * delayedSample;
             
             // Increment and wrap delay index
@@ -165,10 +166,10 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
                 outReverb += delayedSample * ud->reverbGain[tap];
 
                 // update buffer with input + feedback
-                ud->reverbBuffer[ud->reverbIndex[tap]] = inFloatL + feedbackSum * params.reverbDecay;
+                ud->reverbBuffer[ud->reverbIndex[tap]] = monoIn + feedbackSum * params.reverbDecay;
 	        }
 
-            ud->reverbBuffer[ud->reverbIndex[0]] = inFloatL + feedbackSum * params.reverbDecay;
+            ud->reverbBuffer[ud->reverbIndex[0]] = monoIn + feedbackSum * params.reverbDecay;
 
             for (int tap = 0; tap < AudioParams::REVERB_TAPS; tap++){
                 ud->reverbIndex[tap]++;
@@ -176,7 +177,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
                     ud->reverbIndex[tap] = 0;
             }
 
-            outL = (1.0f - params.mix) * inFloatL + params.mix * outReverb;
+            monoOut = (1.0f - params.mix) * monoIn + params.mix * outReverb;
             }
 
         // Bitcrush
@@ -188,12 +189,12 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             if (ud->bitcrushCount >= sampleCount) {
                 // If bitcrush counter exceeds sample count, decrement counter & store new sample
                 ud->bitcrushCount -= sampleCount;
-                ud->bitcrushSample = inFloatL;
-		        outL = inFloatL;
+                ud->bitcrushSample = monoIn;
+		        monoOut = monoIn;
             }
             else{
                 ud->bitcrushCount++;
-                outL = ud->bitcrushSample;
+                monoOut = ud->bitcrushSample;
             }
 	
             float outBitcrush = ud->bitcrushSample;
@@ -202,7 +203,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             // Perform quantization
 	        outBitcrush = roundf(outBitcrush / step) * step;
 	        // Apply mix amount
-            outL = (1.0f - params.mix) * inFloatL + params.mix * outBitcrush;
+            monoOut = (1.0f - params.mix) * monoIn + params.mix * outBitcrush;
         }
 
         // Overdrive
@@ -210,7 +211,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
-            float distortedSample = applyOverdrive(inFloatL, params.odDrive, ud->params->OD_FACTOR);
+            float distortedSample = applyOverdrive(monoIn, params.odDrive, ud->params->OD_FACTOR);
             float filteredSample = applyToneFilter(distortedSample, ud,
                                                 ud->odToneBuffer,
                                                 params.odTone);
@@ -221,7 +222,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             else if (outputSample < 1.0f) outputSample = -1.0f;
 
             // Apply mix amount
-            outL = (1.0f - params.mix) * inFloatL + params.mix * outputSample;
+            monoOut = (1.0f - params.mix) * monoIn + params.mix * outputSample;
         }
 
         // Distortion
@@ -229,7 +230,8 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
-            float distortedSample = applyDistortion(inFloatL, params.distDrive, ud->params->DIST_FACTOR);
+            float distortedSample = applyDistortion(monoIn, params.distDrive, ud->params->DIST_FACTOR);
+
             float filteredSample = applyToneFilter(distortedSample, ud, ud->distToneBuffer, params.distTone);
             outputSample = filteredSample;
 
@@ -238,7 +240,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             else if (outputSample < -1.0f) outputSample = -1.0f;
 
             // Apply mix amount
-            outL = (1.0f - params.mix) * inFloatL + params.mix * outputSample;
+            monoOut = (1.0f - params.mix) * monoIn + params.mix * outputSample;
         }
 
         // Fuzz
@@ -246,7 +248,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
-            float distortedSample = applyFuzz(inFloatL, params.fuzzDrive, ud->params->FUZZ_FACTOR, ud);
+            float distortedSample = applyFuzz(monoIn, params.fuzzDrive, ud->params->FUZZ_FACTOR, ud);
             float filteredSample = applyToneFilter(distortedSample, ud, ud->fuzzToneBuffer, params.fuzzTone);
             float dcFilteredSample = applyDCFilter(filteredSample, ud);
             outputSample = dcFilteredSample;
@@ -255,16 +257,14 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             if (outputSample > 1.0f) outputSample = 1.0f;
             else if (outputSample < -1.0f) outputSample = -1.0f;
 
-            outL = outputSample;
+            monoOut = outputSample;
         }
 
-        else{
-            outL = inFloatL;
-	        outR = inFloatR;
-	    }
+        else
+            monoOut = monoIn;
 
-        *out++ = toSample(outL);
-        *out++ = toSample(outR);
+        *out++ = ud->params->VOLUME.load() * toSample(monoOut);
+        *out++ = ud->params->VOLUME.load() * toSample(monoOut);
     }
 }
 
