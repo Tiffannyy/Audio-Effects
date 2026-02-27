@@ -43,7 +43,6 @@ Engine::Engine(const char* inputDevice, const char* outputDevice){
 
 
 Engine::~Engine(){
-    /*
     stop();
     if (inHandle){
         snd_pcm_close(inHandle);
@@ -54,7 +53,6 @@ Engine::~Engine(){
         snd_pcm_close(outHandle);
         outHandle = nullptr;
     }
-    */
 }
 
 
@@ -69,6 +67,7 @@ void Engine::start(){
     }
     
     // Initialize threads for individual tasks
+    running.store(true);
     peripheralThread = std::thread(&Engine::runPeripheralThread, this);
     guiThread = std::thread(&Engine::runGUIThread, this);
     audioThread = std::thread(&Engine::runStreamLoop, this);
@@ -76,7 +75,6 @@ void Engine::start(){
 
 
 void Engine::stop(){
-    
     // Join threads
     running.store(false);
     peripheralThread.join();
@@ -104,7 +102,6 @@ void Engine::runGUIThread(void) {
 
 
 void Engine::runStreamLoop(){
-    running.store(true);
     while(running.load())
     	stream(userData, audioParams, inHandle, outHandle, period, running);
 }
@@ -283,7 +280,25 @@ void Engine::updateEffectChoice(void){
 
 // ============================================================
 // [READING PERIPHERALS]
-
+std::map<std::string, float> getParams(){
+    return {
+        {"volume", audioParams.VOLUME.load()},
+        {"mix", audioParams.MIX.load()},
+        {"trem_freq", audioParams.TREM_FREQ.load()},
+        {"trem_depth", audioParams.TREM_DEPTH.load()},
+        {"delay_ms", (float)audioParams.DELAY_MS.load()},
+        {"delay_feedback", audioParams.DELAY_FEEDBACK.load()},
+        {"reverb_decay", audioParams.REVERB_DECAY.load()},
+        {"bitcrush_rate", (float)audioParams.BITCRUSH_RATE.load()},
+        {"bitcrush_depth", (float)audioParams.BITCRUSH_DEPTH.load()},
+        {"od_drive", audioParams.OD_DRIVE.load()},
+        {"od_tone", audioParams.OD_TONE.load()},
+        {"dist_drive", audioParams.DIST_DRIVE.load()},
+        {"dist_tone", audioParams.DIST_TONE.load()},
+        {"fuzz_drive", audioParams.FUZZ_DRIVE.load()},
+        {"fuzz_tone", audioParams.FUZZ_TONE.load()}
+    };
+}
 
 void Engine::readPeripherals(void) {
     readPotentiometers();

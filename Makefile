@@ -13,7 +13,7 @@ CFLAGS = -O3 -Wall -Werror -Wextra -shared -std=c++11 -fPIC $(PYTHON_INCLUDES)
 LDFLAGS = -lasound -lwiringPi
 
 # Target Executable
-TARGET = engine$(python3-config --extension-suffix)
+TARGET = $(MODULE)$(PYTHON_SUFFIX)
 SRCS = cpp/src/binding.cpp \
 	cpp/src/callback.cpp \
 	cpp/src/menu.cpp \
