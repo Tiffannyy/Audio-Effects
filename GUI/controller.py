@@ -16,7 +16,7 @@ class Controller:
         self.engine = engine.Engine("plughw:2,0", "plughw:2,0")
         self.engine.start()
 
-        self.window = Window(engine)
+        self.window = Window(self.engine)
         self.window.showFullScreen()
 
         self.timer = QTimer()
@@ -32,13 +32,13 @@ class Controller:
                 p.update_from_engine(params)
     
     def run(self):
-        sys.exit(self.app.exc())
+        sys.exit(self.app.exec())
 
     def shutdown(self):
         self.engine.stop()
-        self.app.quit()  
-        sys.exit()
+        self.app.quit()
 
 
 if __name__ == "__main__":
     ctrl = Controller()
+    ctrl.run()

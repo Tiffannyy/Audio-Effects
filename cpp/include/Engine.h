@@ -147,7 +147,7 @@ private:
     void readButton();
 
     // Threads for individual tasks
-    std::thread peripheralThread, guiThread, audioThread;
+    std::thread peripheralThread, audioThread;
     void runPeripheralThread(void);
     //void runGUIThread(void);
     void runStreamLoop();

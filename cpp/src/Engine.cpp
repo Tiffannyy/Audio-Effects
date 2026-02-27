@@ -81,7 +81,7 @@ void Engine::stop(){
     // Join threads
     running.store(false);
     peripheralThread.join();
-    guiThread.join();
+    //guiThread.join();
     audioThread.join();
     
     // Close periperhals
@@ -95,14 +95,13 @@ void Engine::runPeripheralThread(void) {
     }
 }
 
-/*
-void Engine::runGUIThread(void) {
-    system("clear");
-    while (running.load(std::memory_order_relaxed)) {
-        printEngineState();
-    }
-}
-*/
+
+// void Engine::runGUIThread(void) {
+//     system("clear");
+//     while (running.load(std::memory_order_relaxed)) {
+//         printEngineState();
+//     }
+// }
 
 
 void Engine::runStreamLoop(){
