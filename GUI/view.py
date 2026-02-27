@@ -112,6 +112,8 @@ class Window(QMainWindow):
     def _change_stacked_page(self, index):
         self.stack.setCurrentIndex(index)
 
+    def update_from_engine(self, params, ui):
+        self.stackedW
 
 # if __name__ == "__main__":
 #     app = QApplication(sys.argv)

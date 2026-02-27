@@ -92,6 +92,18 @@ enum FuzzSelection {
     FUZZ_BACK
 };
 
+struct UIState {
+    int menuMode;
+    int effectSel;
+    int tremSel;
+    int delaySel;
+    int reverbSel;
+    int bitcrushSel;
+    int odSel;
+    int distSel;
+    int fuzzSel;
+}
+
 struct AudioParamSelection {
     TremoloSelection    TREMOLO    = static_cast<TremoloSelection>(0);
     DelaySelection      DELAY      = static_cast<DelaySelection>(0);
@@ -139,6 +151,7 @@ public:
 
     void readPeripherals();
     std::map<std::string, float> getParams();
+    UIState getUIState();
 
 private:
     void printEngineState();

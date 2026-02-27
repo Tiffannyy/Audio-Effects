@@ -60,6 +60,16 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         self.dials[name] = dial
         return dial
 
+    def highlight_dial(self, sel, adjusting=False):
+        for i, (name, dial) in enumerate(self.dials.items()):
+            if i == sel:
+                if adjusting:
+                    dial.setStyleSheet("border: 3px solid #00ff00;")
+                else:
+                    dial.setStyleSheet("border: 3px solid #ffaa00;")
+            else:
+                dial.setStyleSheet("")
+
     def update_from_engine(self, params):
         for name, dial in self.dials.items():
             key = name.lower().replace(" ", "_")

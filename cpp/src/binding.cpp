@@ -21,5 +21,6 @@ PYBIND11_MODULE (engine, handler) {
         .def("stop", &Engine::stop)
 
         .def("getParams", &Engine::getParams);
+        .def("get_ui_state", &Engine::getParams);
 }
 

@@ -115,12 +115,12 @@ void Engine::runStreamLoop(){
 
 
 void Engine::setVolume(float v) {
-    audioParams.VOLUME = v;
+    audioParams.VOLUME.store(v);
 }
 
 
 void Engine::setMix(float v) {
-    audioParams.MIX = v;
+    audioParams.MIX.store(v);
 }
 
 
@@ -129,7 +129,7 @@ void Engine::adjustTremFreq(int inc){
     v += inc * TREM_FREQ_INC;
     if (v >= TREM_FREQ_MAX) v = TREM_FREQ_MAX;
     if (v <= TREM_FREQ_MIN) v = TREM_FREQ_MIN;
-    audioParams.TREM_FREQ = v;
+    audioParams.TREM_FREQ.store(v);
 }
 
 
@@ -138,7 +138,7 @@ void Engine::adjustTremDepth(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.TREM_DEPTH = v;
+    audioParams.TREM_DEPTH.store(v);
 }
 
 
@@ -147,7 +147,7 @@ void Engine::adjustDelayMs(int inc){
     v += inc * DELAY_MS_INC;
     if (v >= DELAY_MS_MAX) v = DELAY_MS_MAX;
     if (v <= DELAY_MS_MIN) v = DELAY_MS_MIN;
-    audioParams.DELAY_MS = v;
+    audioParams.DELAY_MS.store(v);
 }
 
 
@@ -156,7 +156,7 @@ void Engine::adjustDelayFeedback(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.DELAY_FEEDBACK = v;
+    audioParams.DELAY_FEEDBACK.store(v);
 }
 
 
@@ -165,7 +165,7 @@ void Engine::adjustReverbDecay(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.REVERB_DECAY = v;
+    audioParams.REVERB_DECAY.store(v);
 }
 
 
@@ -174,7 +174,7 @@ void Engine::adjustBitcrushRate(int inc){
     v += inc * BITCRUSH_RATE_INC;
     if (v >= BITCRUSH_RATE_MAX) v = BITCRUSH_RATE_MAX;
     if (v <= BITCRUSH_RATE_MIN) v = BITCRUSH_RATE_MIN;
-    audioParams.BITCRUSH_RATE = v;
+    audioParams.BITCRUSH_RATE.store(v);
 }
 
 
@@ -183,7 +183,7 @@ void Engine::adjustBitcrushDepth(int inc){
     v += inc;
     if (v >= BITCRUSH_DEPTH_MAX) v = BITCRUSH_DEPTH_MAX;
     if (v <= BITCRUSH_DEPTH_MIN) v = BITCRUSH_DEPTH_MIN;
-    audioParams.BITCRUSH_DEPTH = v;
+    audioParams.BITCRUSH_DEPTH.store(v);
 }
 
 
@@ -192,7 +192,7 @@ void Engine::adjustOdDrive(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.OD_DRIVE = v;
+    audioParams.OD_DRIVE.store(v);
 }
 
 
@@ -201,7 +201,7 @@ void Engine::adjustOdTone(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.OD_TONE = v;
+    audioParams.OD_TONE.store(v);
 }
 
 
@@ -210,7 +210,7 @@ void Engine::adjustDistDrive(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.DIST_DRIVE = v;
+    audioParams.DIST_DRIVE.store(v);
 }
 
 
@@ -219,7 +219,7 @@ void Engine::adjustDistTone(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.DIST_TONE = v;
+    audioParams.DIST_TONE.store(v);
 }
 
 void Engine::adjustFuzzDrive(int inc){
@@ -227,7 +227,7 @@ void Engine::adjustFuzzDrive(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.FUZZ_DRIVE = v;
+    audioParams.FUZZ_DRIVE.store(v);
 }
 
 void Engine::adjustFuzzTone(int inc){
@@ -235,7 +235,7 @@ void Engine::adjustFuzzTone(int inc){
     v += inc * PARAM_INC;
     if (v >= PARAM_MAX) v = PARAM_MAX;
     if (v <= PARAM_MIN) v = PARAM_MIN;
-    audioParams.FUZZ_TONE = v;
+    audioParams.FUZZ_TONE.store(v);
 }
 
 
@@ -283,6 +283,19 @@ void Engine::updateEffectChoice(void){
 
 // ============================================================
 // [READING PERIPHERALS]
+UIState Engine::getUIState(){
+    UIState s;
+    s.menuMode = menuMode;
+    s.effectSel = effectSelection;
+    s.tremSel = audioParamSelection.TREMOLO;
+    s.delaySel = audioParamsSelection.DELAY;
+    s.reverbSel = audioParamsSelection.REVERB;
+    s.bitcrushSel = audioParamsSelection.BITCRUSH;
+    s.odSel = audioParamsSelection.OVERDRIVE;
+    s.distSel = audioParamsSelection.DISTORTION;
+    s.fuzzSel = audioParamsSelection.FUZZ;
+    return s;
+}
 std::map<std::string, float> Engine::getParams(){
     return {
         {"volume", (float)audioParams.VOLUME.load()},
@@ -303,6 +316,7 @@ std::map<std::string, float> Engine::getParams(){
     };
 }
 
+
 void Engine::readPeripherals(void) {
     readPotentiometers();
     readEncoder();
@@ -317,7 +331,6 @@ void Engine::readPotentiometers(void) {
 
     
 void Engine::readEncoder(void) {
-    
     // Detect encoder turns
     if (peripheralData.ENCODER_TURNED) {
         
