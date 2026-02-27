@@ -122,36 +122,6 @@ struct AudioParamSelection {
 //namespace py = pybind11;
 
 class Engine {
-public:
-    Engine(const char* inputDevice, const char* outputDevice);
-    ~Engine();
-
-    void start();
-    void stop();
-    void setEffect(EffectChoices effect);
-    
-    // Parameter functions
-    void setVolume(float v);
-    void setMix(float v);
-    void adjustTremFreq(int inc);
-    void adjustTremDepth(int inc);
-    void adjustDelayMs(int inc);
-    void adjustDelayFeedback(int inc);
-    void adjustReverbDecay(int inc);
-    void adjustBitcrushRate(int inc);
-    void adjustBitcrushDepth(int inc);
-    void adjustOdDrive(int inc);
-    void adjustOdTone(int inc);
-    void adjustDistDrive(int inc);
-    void adjustDistTone(int inc);
-    void adjustFuzzDrive(int inc);
-    void adjustFuzzTone(int inc);
-    void updateEffectChoice(void);
-
-    void readPeripherals();
-    std::map<std::string, float> getParams();
-    UIState getUIState();
-
 private:
     void printEngineState();
     void readPotentiometers();
@@ -179,6 +149,41 @@ private:
     // Menu variables
     std::atomic<MenuMode> menuMode = EFFECT_SELECTION_MODE;
     std::atomic<EffectSelection> effectSelection = NO_EFFECT;
-    AudioParamSelection audioParamSelection;    
+    AudioParamSelection audioParamSelection;   
+
+public:
+    Engine(const char* inputDevice, const char* outputDevice);
+    ~Engine();
+
+    Engine(const Engine&) = delete;
+    Engine& operator=(const Engine&) = delete;
+    Engine(Engine&&) = delete;
+    Engine& operator=(Engine&&) = delete;
+
+    void start();
+    void stop();
+    void setEffect(EffectChoices effect);
+    
+    // Parameter functions
+    void setVolume(float v);
+    void setMix(float v);
+    void adjustTremFreq(int inc);
+    void adjustTremDepth(int inc);
+    void adjustDelayMs(int inc);
+    void adjustDelayFeedback(int inc);
+    void adjustReverbDecay(int inc);
+    void adjustBitcrushRate(int inc);
+    void adjustBitcrushDepth(int inc);
+    void adjustOdDrive(int inc);
+    void adjustOdTone(int inc);
+    void adjustDistDrive(int inc);
+    void adjustDistTone(int inc);
+    void adjustFuzzDrive(int inc);
+    void adjustFuzzTone(int inc);
+    void updateEffectChoice(void);
+
+    void readPeripherals();
+    std::map<std::string, float> getParams();
+    UIState getUIState(); 
 };
 
