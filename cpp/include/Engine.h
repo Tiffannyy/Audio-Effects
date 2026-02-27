@@ -102,7 +102,7 @@ struct UIState {
     int odSel;
     int distSel;
     int fuzzSel;
-}
+};
 
 struct AudioParamSelection {
     TremoloSelection    TREMOLO    = static_cast<TremoloSelection>(0);

@@ -288,12 +288,12 @@ UIState Engine::getUIState(){
     s.menuMode = menuMode;
     s.effectSel = effectSelection;
     s.tremSel = audioParamSelection.TREMOLO;
-    s.delaySel = audioParamsSelection.DELAY;
-    s.reverbSel = audioParamsSelection.REVERB;
-    s.bitcrushSel = audioParamsSelection.BITCRUSH;
-    s.odSel = audioParamsSelection.OVERDRIVE;
-    s.distSel = audioParamsSelection.DISTORTION;
-    s.fuzzSel = audioParamsSelection.FUZZ;
+    s.delaySel = audioParamSelection.DELAY;
+    s.reverbSel = audioParamSelection.REVERB;
+    s.bitcrushSel = audioParamSelection.BITCRUSH;
+    s.odSel = audioParamSelection.OVERDRIVE;
+    s.distSel = audioParamSelection.DISTORTION;
+    s.fuzzSel = audioParamSelection.FUZZ;
     return s;
 }
 std::map<std::string, float> Engine::getParams(){

@@ -113,7 +113,42 @@ class Window(QMainWindow):
         self.stack.setCurrentIndex(index)
 
     def update_from_engine(self, params, ui):
-        self.stackedW
+        if self.stack.currentIndex() != ui.effectSel:
+            self.list_widget.blockSignals(True)
+            self.list_widget.setCurrentRow(ui.effectSel)
+            self.stack.setCurrentIndex(ui.effectSel)
+            self.list_widget.blockSignals(False)
+
+        selIndex = -1
+
+        if ui.effectSel == 1:
+            selIndex = ui.tremSel
+        elif ui.effectSel == 2:
+            selIndex = ui.delaySel
+        elif ui.effectSel == 3:
+            selIndex = ui.reverbSel
+        elif ui.effectSel == 4:
+            selIndex = ui.bitcrushSel
+        elif ui.effectSel == 5:
+            selIndex = ui.odSel
+        elif ui.effectSel == 6:
+            selIndex = ui.distSel
+        elif ui.effectSel == 7:
+            selIndex = ui.fuzzSel
+
+        panel = self.stack.currentWidget()
+
+        if hasattr(panel, "update_from_engine"):
+            panel.update_from_engine(params)
+
+        if hasattr(panel, "highlight_dial"):
+            if ui.menuMode == 1:
+                panel.highlight_dial(selIndex, adjusting=False)
+            elif ui.menuMode == 2:
+                panel.highlight_dial(selIndex, adjusting=True)
+            else:
+                panel.highlight_dial(-1)
+
 
 # if __name__ == "__main__":
 #     app = QApplication(sys.argv)
