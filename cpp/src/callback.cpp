@@ -118,11 +118,11 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
     	float outR = inFloatR;
 
         // No effect
-        if (ud->effects->norm)
+        if (ud->effects->norm.load())
             outL = inFloatL;
 
         // Tremolo effect
-        else if (ud->effects->trem){
+        else if (ud->effects->trem.load()){
             int j = (int)(ud->params->TREM_PHASE * (ud->LUT_SIZE / (2.0f * M_PI))) & (ud->LUT_SIZE - 1);
             float trem = (1.0 - params.tremDepth) + params.tremDepth * (0.5 * (1.0 + ud->sineLUT[j]));
             
@@ -135,7 +135,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         
 
         // Delay effect
-        else if (ud->effects->delay){
+        else if (ud->effects->delay.load()){
             float delayedSample = SAMPLE_SILENCE;
             // add
             delayedSample = ud->delayBuffer[ud->delayIndex];
@@ -155,7 +155,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
 
 
         // Reverb
-        else if (ud->effects->reverb){
+        else if (ud->effects->reverb.load()){
             float outReverb = SAMPLE_SILENCE;
 	        float feedbackSum = SAMPLE_SILENCE;
 
@@ -180,7 +180,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             }
 
         // Bitcrush
-        else if (ud->effects->bitcrush) {
+        else if (ud->effects->bitcrush.load()) {
             // Calculate number of samples to hold
             float sampleCount = params.sampleRate / params.bitcrushRate;
 
@@ -206,7 +206,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         }
 
         // Overdrive
-        else if (ud->effects->overdrive) {
+        else if (ud->effects->overdrive.load()) {
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
@@ -225,7 +225,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         }
 
         // Distortion
-        else if (ud->effects->distortion) {
+        else if (ud->effects->distortion.load()) {
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters
@@ -242,7 +242,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
         }
 
         // Fuzz
-        else if (ud->effects->fuzz) {
+        else if (ud->effects->fuzz.load()) {
             float outputSample = SAMPLE_SILENCE;
 
             // Apply effect and filters

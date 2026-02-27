@@ -241,42 +241,42 @@ void Engine::adjustFuzzTone(int inc){
 
 
 void Engine::updateEffectChoice(void){
-    effectChoice.norm = false;
-    effectChoice.trem = false;
-    effectChoice.delay = false;
-    effectChoice.reverb = false;
-    effectChoice.bitcrush = false;
-    effectChoice.overdrive = false;
-    effectChoice.distortion = false;
-    effectChoice.fuzz = false;
+    effectChoice.norm.store(false);
+    effectChoice.trem.store(false);
+    effectChoice.delay.store(false);
+    effectChoice.reverb.store(false);
+    effectChoice.bitcrush.store(false);
+    effectChoice.overdrive.store(false);
+    effectChoice.distortion.store(false);
+    effectChoice.fuzz.store(false);
 
     switch (effectSelection){
         case NO_EFFECT:
-            effectChoice.norm = true;
+            effectChoice.norm.store(true);
             break;
         case TREMOLO:
-            effectChoice.trem = true;
+            effectChoice.trem.store(true);
             break;
         case DELAY:
-            effectChoice.delay = true;
+            effectChoice.delay.store(true);
             break;
         case REVERB:
-            effectChoice.reverb = true;
+            effectChoice.reverb.store(true);
             break;
         case BITCRUSH:
-            effectChoice.bitcrush = true;
+            effectChoice.bitcrush.store(true);
             break;
         case OVERDRIVE:
-            effectChoice.overdrive = true;
+            effectChoice.overdrive.store(true);
             break;
         case DISTORTION:
-            effectChoice.distortion = true;
+            effectChoice.distortion.store(true);
             break;
         case FUZZ:
-            effectChoice.fuzz = true;
+            effectChoice.fuzz.store(true);
             break;
         default:
-            effectChoice.norm = true;
+            effectChoice.norm.store(true);
             break;
     }
 }

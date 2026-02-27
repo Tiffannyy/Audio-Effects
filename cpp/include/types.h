@@ -38,16 +38,15 @@ typedef int16_t SAMPLE;
 
 // Primarily for menu and callback functions
 struct EffectChoices{
-    bool norm       = false;
-    bool trem       = false;
-    bool delay      = false;
-    bool reverb     = false;
-    bool bitcrush   = false;
-    bool overdrive  = false;
-    bool distortion = false;
-    bool fuzz       = false;
+    std::atomic<bool> norm{false};
+    std::atomic<bool> trem{false};
+    std::atomic<bool> delay{false};
+    std::atomic<bool> reverb{false};
+    std::atomic<bool> bitcrush{false};
+    std::atomic<bool> overdrive{false};
+    std::atomic<bool> distortion{false};
+    std::atomic<bool> fuzz{false};
 };
-
 
 // Parameters to pass to callback functions
 struct AudioParams{
