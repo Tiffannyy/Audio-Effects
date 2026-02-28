@@ -147,9 +147,6 @@ class Window(QMainWindow):
                 panel.highlight_dial(selIndex, adjusting=True)
             else:
                 panel.highlight_dial(-1)
-        #TODO: DEL
-        print("menuMode:", ui.menuMode)
-        print("selIndex:", selIndex)
 
 # if __name__ == "__main__":
 #     app = QApplication(sys.argv)

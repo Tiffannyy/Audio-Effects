@@ -77,7 +77,7 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
 
             value = params[key]
 
-            min_val, max_val = self.param_ranges.get(key, (0, 1))
+            min_val, max_val = self.param_range.get(key, (0, 1))
             dial_max = dial.maximum()
             dial_min = dial.minimum()
 
@@ -145,7 +145,7 @@ class DelayPanel(EffectPanel):
             'Delay': 'delay_ms',
             'Feedback': 'delay_feedback'
         }
-        self.params_ranges = {
+        self.param_range = {
             'volume': (0.0,1.0),
             'mix' : (0.0,1.0),
             'delay_ms': (0, 2000),
@@ -175,7 +175,7 @@ class ReverbPanel(EffectPanel):
         for name, val in self.params.items():
             self.add_dial(name, val)
 
-class BitcrushPanel(EffectPanel)
+class BitcrushPanel(EffectPanel):
      def __init__(self, effect='Bitcrush'):
         super().__init__(effect)
         self.params = {
