@@ -64,7 +64,7 @@ struct AudioParams{
     std::atomic<float> DELAY_FEEDBACK   {0.4};     // feedback amount (0 to 1)   -  for delay
 
     // Reverb
-    static const int REVERB_TAPS  = 5;        // number of delay taps for reverb
+    static const int REVERB_TAPS  = 8;        // number of delay taps for reverb
     std::atomic<float> REVERB_DECAY   {0.6};      // decay factor for reverb
 
     // Bitcrush
