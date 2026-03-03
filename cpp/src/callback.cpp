@@ -18,7 +18,7 @@ float applyOverdrive(float inputSample,
 
     // Apply transfer characteristic
     float intensityFactor = 1.0 / (odFactor*drive + 0.01);
-    float normalizeFactor = 1.0 / (intensityFactor + 1.0f);
+    float normalizeFactor = 1.0 / (intensityFactor + 1.0);
     float outputSample = (inputSample / (intensityFactor + std::fabs(inputSample)));
     outputSample /= normalizeFactor;
 
@@ -225,6 +225,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
 
             // Apply mix amount
             monoOut = (1.0f - params.mix) * monoIn + params.mix * outputSample;
+            
         }
 
         // Distortion

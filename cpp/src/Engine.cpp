@@ -31,7 +31,7 @@ Engine::Engine(const char* inputDevice, const char* outputDevice){
 
     if (setupPCM(outputDevice, &outHandle,
                  SND_PCM_STREAM_PLAYBACK,
-                 2, audioParams.SAMPLE_RATE,
+                 1, audioParams.SAMPLE_RATE,
                  period, buffer) < 0){
         throw std::runtime_error("Failed to setup output PCM");
     }

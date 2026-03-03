@@ -5,9 +5,9 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QDial
 )
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
+from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve
 
 from abc import ABCMeta
 
@@ -62,32 +62,26 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         glow.setOffset(0)
         container.setGraphicsEffect(glow)
 
-        anim = QPropertyAnimation(container, b"maximumSize")
-        anim.setDuration(150)
-        anim.setEasingCurve(QEasingCurve.OutCubic)
-
         self.param_box_layout.addWidget(container)
         self.dials[name] = {
                 "dial":dial,
                 "container":container,
-                "glow":glow,
-                "anim":anim
+                "glow":glow
                 }
         return dial
 
     def highlight_dial(self, sel, adjusting=False):
         for i, item in enumerate(self.dials.values()):
             container = item["container"]
-            glow = item["glow"]
-            anim = item["anim"]
+            glow = item["glow"] 
 
             if i == sel:
                 if adjusting:
-                    color = Qt.green
+                    color = QColor(0, 255, 0, 180)
                     blur = 40
                     size = 110
                 else:
-                    color = Qt.orange
+                    color = QColor(255, 140, 180)
                     blur = 25
                     size = 100
             else:
@@ -98,15 +92,10 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
             glow.setColor(color)
             glow.setBlurRadius(blur)
 
-            anim.stop()
-            anim.setStartValue(container.maximumSize())
-            anim.setEndValue(container.sizeHint().expandedTo(Qt.QSize(size, size)))
-            anim.start()
-
     def update_from_engine(self, params):
-        for name, item in self.dials.values():
+        for name, item in self.dials.items():
             dial = item["dial"]
-            key = self.params_keys.get(dial)
+            key = self.params_keys.get(name)
             if not key or key not in params:
                 continue
 
@@ -117,7 +106,7 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
             dial_min = dial.minimum()
 
             scaled = (value - min_val) / (max_val - min_val)
-            dial_scaled = (dial_min + scaled) * (dial_max - dial_min)
+            dial_scaled = dial_min + scaled * (dial_max - dial_min)
 
             dial.blockSignals(True)
             dial.setValue(int(dial_scaled))
