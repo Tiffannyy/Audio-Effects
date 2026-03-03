@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import (
     QDial
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
 
 from abc import ABCMeta
 
@@ -55,23 +57,56 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         layout.addWidget(label)
         container.setLayout(layout)
 
+        glow = QGraphicsDropShadowEffect()
+        glow.setBlurRadius(0)
+        glow.setOffset(0)
+        container.setGraphicsEffect(glow)
+
+        anim = QPropertyAnimation(container, b"maximumSize")
+        anim.setDuration(150)
+        anim.setEasingCurve(QEasingCurve.OutCubic)
+
         self.param_box_layout.addWidget(container)
-        self.dials[name] = dial
+        self.dials[name] = {
+                "dial":dial,
+                "container":container,
+                "glow":glow,
+                "anim":anim
+                }
         return dial
 
     def highlight_dial(self, sel, adjusting=False):
-        for i, (name, dial) in enumerate(self.dials.items()):
+        for i, item in enumerate(self.dials.values()):
+            container = item["container"]
+            glow = item["glow"]
+            anim = item["anim"]
+
             if i == sel:
                 if adjusting:
-                    dial.setStyleSheet("border: 3px solid #00ff00;")
+                    color = Qt.green
+                    blur = 40
+                    size = 110
                 else:
-                    dial.setStyleSheet("border: 3px solid #ffaa00;")
+                    color = Qt.orange
+                    blur = 25
+                    size = 100
             else:
-                dial.setStyleSheet("")
+                color = Qt.transparent
+                blur = 0
+                size = 90
+
+            glow.setColor(color)
+            glow.setBlurRadius(blur)
+
+            anim.stop()
+            anim.setStartValue(container.maximumSize())
+            anim.setEndValue(container.sizeHint().expandedTo(Qt.QSize(size, size)))
+            anim.start()
 
     def update_from_engine(self, params):
-        for name, dial in self.dials.items():
-            key = self.params_keys.get(name)
+        for name, item in self.dials.values():
+            dial = item["dial"]
+            key = self.params_keys.get(dial)
             if not key or key not in params:
                 continue
 

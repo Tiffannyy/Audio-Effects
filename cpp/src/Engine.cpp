@@ -497,9 +497,10 @@ void Engine::readButton(void) {
     if (peripheralData.ENCODER_PRESSED) {
         
         // Effect selection
-        if (menuMode == EFFECT_SELECTION_MODE && effectSelection != NO_EFFECT){
+        if (menuMode == EFFECT_SELECTION_MODE){
             updateEffectChoice();
-            menuMode = AUDIO_PARAM_SELECTION_MODE;
+            if (effectSelection != NO_EFFECT)
+                menuMode = AUDIO_PARAM_SELECTION_MODE;
         }
         
         // Effect parameter selection

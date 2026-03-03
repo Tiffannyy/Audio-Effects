@@ -28,8 +28,8 @@
 #include "../include/Engine.h"
 
 using namespace std;
-const char* INPUT_DEVICE_NAME = "hw:2,0";
-const char* OUTPUT_DEVICE_NAME = "plughw:0,0";
+const char* INPUT_DEVICE_NAME = "hw:3,0";
+const char* OUTPUT_DEVICE_NAME = "hw:2,0";
 
 
 // main function

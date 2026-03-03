@@ -86,8 +86,8 @@ void initData(RtUserData &ud, AudioParams &audioParams, EffectChoices &effectCho
  
     ud.reverbSize = AudioParams::SAMPLE_RATE;
     ud.reverbBuffer.assign(ud.reverbSize, 0.0f);
-    float tapsMs[AudioParams::REVERB_TAPS] = {40, 50, 60, 80, 110};
-    float gains[AudioParams::REVERB_TAPS] = {0.6f, 0.5f, 0.4f, 0.3f, 0.25f};
+    float tapsMs[AudioParams::REVERB_TAPS] = {40, 50, 60, 80, 90, 110};
+    float gains[AudioParams::REVERB_TAPS] = {0.4, 0.35, 0.3, 0.25, 0.2, 0.15};
     for (int i = 0; i < AudioParams::REVERB_TAPS; i++){
         ud.reverbDelay[i] = tapsMs[i] * AudioParams::SAMPLE_RATE / 1000;
         ud.reverbGain[i] = gains[i];
