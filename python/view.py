@@ -8,82 +8,94 @@
 # 29 October 2025
 
 import sys
-from parameters import *
-from PyQt5.QtCore import Qt, QSize
+from .parameters import *
 from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget,
     QDockWidget,
     QMainWindow,
-    QApplication,
+    QVBoxLayout,
     QListWidget,
     QStackedWidget,
-    QVBoxLayout,
-    QLabel,
     QStyle,
     QSystemTrayIcon,
     QAction,
-    QMenu,
-    QSlider,
-    QGroupBox,
+    QMenu
 )
 
-
 class Window(QMainWindow):
-    def __init__(self):
+    def __init__(self, engine):
         super().__init__()
-        self.setWindowTitle("Omni-Pedal - Effects GUI")
-        self.showFullScreen()
+        self.engine = engine
 
-        # TODO: customize font
+        # TODO: Customize font
         self.sidebar_font = QFont("Arial", 18)
 
-        # stacked area in the main window
-        self.stack = QStackedWidget(self)
+        self._add_dock()
+        self._add_list()
+        self._add_pages()
 
-        '''sidebar / dock'''
+        # connect selection to panel
+        self.list_widget.setCurrentRow(0)  # default selection
+
+        self._add_sidebar()
+
+        self._restore_tray()
+
+    def _add_dock(self):
         self.dock = QDockWidget("Effects", self)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         # remove all dock features (minimize, exit)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
         # create container for list widget
-        sidebar_container = QWidget()
-        sidebar_layout = QVBoxLayout(sidebar_container)
-        sidebar_layout.setContentsMargins(8, 8, 8, 8)
-        sidebar_layout.setSpacing(12)
 
-        # list widget
+    def _add_list(self):
         self.list_widget = QListWidget()
         self.list_widget.setFont(self.sidebar_font)
         items = ["Clean", "Tremolo", "Delay", "Reverb",
-                 "Distortion", "Fuzz", "Overdrive"]
+                 "Bitcrush", "Overdrive", "Distortion", "Fuzz"]
         self.list_widget.addItems(items)
         self.list_widget.setStyleSheet("QListWidget::item { padding: 8px; }")
-
-        # add list widget to container
-        sidebar_layout.addWidget(self.list_widget)
-        sidebar_layout.addStretch()  # Push everything to the top
-        self.dock.setWidget(sidebar_container)
+        self.list_widget.currentRowChanged.connect(self._change_stacked_page)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
 
+    def _add_pages(self):
+        # stacked area in the main window
+        self.pages = []
+        self.stack = QStackedWidget(self)
+        self.pages.append(CleanPanel())
+        self.pages.append(TremoloPanel())
+        self.pages.append(DelayPanel())
+        self.pages.append(ReverbPanel())
+        self.pages.append(BitcrushPanel())
+        self.pages.append(OverdrivePanel())
+        self.pages.append(DistortionPanel())
+        self.pages.append(FuzzPanel())
+
         # populate stacked pages / panel
-        for i in range(self.list_widget.count()):
-            name = self.list_widget.item(i).text()
-            self.stack.addWidget(EffectPanel(name))
+        for i in (self.pages):
+            self.stack.addWidget(i)
 
-        # connect selection to panel
-        self.list_widget.currentRowChanged.connect(self.stack.setCurrentIndex)
-        self.list_widget.setCurrentRow(0)  # default selection
-
+    def _add_sidebar(self):
+        self.sidebar_container = QWidget()
+        self.sidebar_layout = QVBoxLayout(self.sidebar_container)
+        self.sidebar_layout.setContentsMargins(8, 8, 8, 8)
+        self.sidebar_layout.setSpacing(12)
         # insert the sidebar widget above the stacked widget contents
         container = QWidget()
         container_layout = QVBoxLayout()
         container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.addWidget(self.sidebar_container)
         container_layout.addWidget(self.stack)
         container.setLayout(container_layout)
         self.setCentralWidget(container)
+        self.sidebar_layout.addWidget(self.list_widget)
+        self.sidebar_layout.addStretch()  # Push everything to the top
+        self.dock.setWidget(self.sidebar_container)
 
-        # system tray (restore)
+    def _restore_tray(self):
+         # system tray (restore)
         self.tray = QSystemTrayIcon(self)
         icon = self.style().standardIcon(QStyle.SP_MediaPlay)
         self.tray.setIcon(icon)
@@ -95,17 +107,51 @@ class Window(QMainWindow):
         tray_menu.addAction(restore_act)
         self.tray.setContextMenu(tray_menu)
         self.tray.show()
+    
+    def _change_stacked_page(self, index):
+        self.stack.setCurrentIndex(index)
 
-        '''    # override close event - minimize instead of fully exiting
-        def closeEvent(self, event):
-        self.showMinimized()
-        event.ignore()
-        '''
+    def update_from_engine(self, params, ui):
+        if self.stack.currentIndex() != ui.effectSel:
+            self.list_widget.blockSignals(True)
+            self.list_widget.setCurrentRow(ui.effectSel)
+            self.stack.setCurrentIndex(ui.effectSel)
+            self.list_widget.blockSignals(False)
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    # keep window running
-    app.setQuitOnLastWindowClosed(False)
-    window = Window()
-    window.show()
-    app.exec()
+        selIndex = -1
+
+        if ui.effectSel == 1:
+            selIndex = ui.tremSel
+        elif ui.effectSel == 2:
+            selIndex = ui.delaySel
+        elif ui.effectSel == 3:
+            selIndex = ui.reverbSel
+        elif ui.effectSel == 4:
+            selIndex = ui.bitcrushSel
+        elif ui.effectSel == 5:
+            selIndex = ui.odSel
+        elif ui.effectSel == 6:
+            selIndex = ui.distSel
+        elif ui.effectSel == 7:
+            selIndex = ui.fuzzSel
+
+        panel = self.stack.currentWidget()
+
+        if hasattr(panel, "update_from_engine"):
+            panel.update_from_engine(params)
+
+        if hasattr(panel, "highlight_dial"):
+            if ui.menuMode == 1:
+                panel.highlight_dial(selIndex, adjusting=False)
+            elif ui.menuMode == 2:
+                panel.highlight_dial(selIndex, adjusting=True)
+            else:
+                panel.highlight_dial(-1)
+
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     # keep window running
+#     app.setQuitOnLastWindowClosed(False)
+#     window = Window()
+#     window.show()
+#     app.exec()
