@@ -200,7 +200,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             }
 	
             float outBitcrush = ud->bitcrushSample;
-            float step = 1.0f / (1 << params.bitcrushDepth); //ud->params->BITCRUSH_STEP;
+            float step = 2.0f / (1 << params.bitcrushDepth); //ud->params->BITCRUSH_STEP;
 
             // Perform quantization
 	        outBitcrush = roundf(outBitcrush / step) * step;
