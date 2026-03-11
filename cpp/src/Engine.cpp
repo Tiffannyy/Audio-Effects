@@ -53,6 +53,7 @@ Engine::~Engine(){
     }
 
     if (outHandle){
+        snd_pcm_drain(outHandle);
         snd_pcm_close(outHandle);
         outHandle = nullptr;
     }
@@ -80,9 +81,11 @@ void Engine::start(){
 void Engine::stop(){
     // Join threads
     running.store(false);
-    peripheralThread.join();
+    if (peripheralThread.joinable())
+        peripheralThread.join();
     //guiThread.join();
-    audioThread.join();
+    if (audioThread.joinable())
+        audioThread.join();
     
     // Close periperhals
     closePeripherals();
