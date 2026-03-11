@@ -109,8 +109,15 @@ void Engine::runPeripheralThread(void) {
 
 
 void Engine::runStreamLoop(){
-    while(running.load())
-    	stream(userData, audioParams, inHandle, outHandle, period, running);
+    struct pollfd pfds[2];
+    snd_pcm_poll_descriptors(inHandle, pfds, 1);
+    snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
+
+    while (running.load()) {
+        int ret = poll(pfds, 2, -1);
+        if (ret < 0) continue;
+        stream(userData, audioParams, inHandle, outHandle, period, running);
+    }
 }
 
 
