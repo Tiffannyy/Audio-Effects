@@ -15,7 +15,7 @@ class Controller:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
-        self.engine = engine.Engine("hw:3,0", "plughw:2,0")
+        self.engine = engine.Engine("hw:0,0", "hw:0,0")
         self.engine.start()
 
         self.window = Window(self.engine)

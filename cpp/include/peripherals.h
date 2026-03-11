@@ -16,8 +16,8 @@
 
 
 struct PeripheralData {
-	float VOLUME_VALUE = 0.0f;
-	float MIX_VALUE = 0.0f;
+	float VOLUME_VALUE = 1.0f;
+	float MIX_VALUE = 1.0f;
 	short ENCODER_TURNED  = 0; // -1 = turned left, 0 = idle, 1 = turned right
 	bool  ENCODER_PRESSED = false;
 };

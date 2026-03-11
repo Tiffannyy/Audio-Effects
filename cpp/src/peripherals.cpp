@@ -20,9 +20,9 @@
 
 #define ADC_ADDRESS 0x4b
 #define DEBOUNCE_MS 200
-#define CLK_PIN     28
+#define CLK_PIN     6 //28
 #define DT_PIN      27
-#define SW_PIN      29
+#define SW_PIN      4 //29
 #define VOLUME_KNOB 0
 #define MIX_KNOB    1
 
