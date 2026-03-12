@@ -1,15 +1,24 @@
 from PyQt5.QtWidgets import (
     QWidget,
+    QHBoxLayout,
     QVBoxLayout,
     QLabel,
     QGroupBox,
     QDial
 )
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve
 
 from abc import ABCMeta
+
+import os
+
+def CustomQFont(style, size):
+    font_path = os.path.dirname(os.path.abspath(__file__))
+    font_id = QFontDatabase.addApplicationFont(font_path + "/Gabarito-" + style + ".ttf")
+    font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+    return QFont(font_family, size)	
 
 class ABCWidgetMeta(ABCMeta, type(QWidget)):
     pass
@@ -29,7 +38,9 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
 
         title = QLabel(f"{self.name} Effect")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-weight: bold; font-size: 20px;")
+        #title.setStyleSheet("font-weight: bold; font-size: 60px;")
+        title.setFont(CustomQFont("Bold", 48))
+        title.setStyleSheet("font-weight: bold;")
         self.effect_layout.addWidget(title)
 
         self.param_box = QGroupBox("Parameters")
@@ -39,21 +50,25 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         self.effect_layout.addWidget(self.param_box, stretch=1)
 
     def add_dial(self, name:str, val, min_val=0, max_val=100):
+		
         dial = QDial()
         dial.setRange(min_val, max_val)
         dial.setValue(val)
         dial.setNotchesVisible(True)
         dial.setWrapping(False)
-        dial.setFixedSize(80, 80)
+        dial.setFixedSize(200, 200)
         dial.setToolTip(name)
+        # dial.setAlignment(Qt.AlignVCenter)
 
         label = QLabel(name)
-        label.setAlignment(Qt.AlignCenter)
+        # label.setStyleSheet("font-size: 50px;")
+        label.setFont(CustomQFont("Regular", 32))
+        label.setAlignment(Qt.AlignVCenter)
 
         container = QWidget()
-        layout = QVBoxLayout()
-        layout.setSpacing(5)
-        layout.addWidget(dial)
+        layout = QHBoxLayout()
+        layout.setSpacing(50)
+        layout.addWidget(dial, alignment=Qt.AlignVCenter)
         layout.addWidget(label)
         container.setLayout(layout)
 
