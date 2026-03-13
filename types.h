@@ -43,7 +43,7 @@ struct EffectChoices{
 // Parameters to pass to callback functions
 struct AudioParams{
 
-    float MIX           = 1;      // Mix between original and delayed signals
+    float MIX           = 0.5;      // Mix between original and delayed signals
 
     // Tremolo
     float TREM_FREQ     = 4.0;      // tremolo frequency (Hz). lower the freq, the slower the tremolo effect vice versa
@@ -52,15 +52,15 @@ struct AudioParams{
 
     // Delay
     static constexpr int DELAY_MS       = 500;      // delay in milliseconds
-    static constexpr double FEEDBACK    = 0.2;      // feedback amount (0 to 1)   -  for delay
+    static constexpr double FEEDBACK    = 0.6;      // feedback amount (0 to 1)   -  for delay
 
     // Reverb
     static const int REVERB_TAPS        = 5;        // number of delay taps for reverb
     static constexpr float reverbDecay  = 0.6;      // decay factor for reverb
 
     // Bitcrush
-    int DOWNSAMPLE_RATE = 12000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
-    int BIT_DEPTH       = 8;         // Amount of bits to "quantize" sample amplitude
+    int DOWNSAMPLE_RATE = 8000;     // Rate to "resample" input signal (Hz) (Must NOT exceed sample rate)
+    int BIT_DEPTH       = 4;         // Amount of bits to "quantize" sample amplitude
 
     // Overdrive
     float OD_DRIVE  = 1;

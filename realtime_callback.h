@@ -243,13 +243,21 @@ static int streamCallback(const void *inputBuffer, void *outputBuffer,
                 outputSample = ud->bitcrushSample;
             }
 
+            float outBitcrush = ud->bitcrushSample;
+            float step = 2.0f / (1 << ud->params->BIT_DEPTH); //ud->params->BITCRUSH_STEP;
+
+            // Perform quantization
+	        outBitcrush = roundf(outBitcrush / step) * step;
+
+            /*
             // Perform quantization
             double amplitudeStep = 1.0 / pow(2, ud->params->BIT_DEPTH);
             int quantizedValue = outputSample / amplitudeStep;
             outputSample = (double) quantizedValue / pow(2, ud->params->BIT_DEPTH);
+            */
 
             // Apply mix amount
-            outputSample = (1.0f - ud->params->MIX) * inputSample + ud->params->MIX * outputSample;
+            outputSample = (1.0f - ud->params->MIX) * inputSample + ud->params->MIX * outBitcrush;
 
             *out++ = outputSample;
             *out++ = outputSample;
