@@ -1,13 +1,24 @@
 from PyQt5.QtWidgets import (
     QWidget,
+    QHBoxLayout,
     QVBoxLayout,
     QLabel,
     QGroupBox,
     QDial
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PyQt5.QtGui import QColor, QFont, QFontDatabase
+from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve
 
 from abc import ABCMeta
+
+import os
+
+def CustomQFont(style, size):
+    font_path = os.path.dirname(os.path.abspath(__file__))
+    font_id = QFontDatabase.addApplicationFont(font_path + "/Gabarito-" + style + ".ttf")
+    font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+    return QFont(font_family, size)	
 
 class ABCWidgetMeta(ABCMeta, type(QWidget)):
     pass
@@ -27,7 +38,9 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
 
         title = QLabel(f"{self.name} Effect")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-weight: bold; font-size: 20px;")
+        #title.setStyleSheet("font-weight: bold; font-size: 60px;")
+        title.setFont(CustomQFont("Bold", 48))
+        title.setStyleSheet("font-weight: bold;")
         self.effect_layout.addWidget(title)
 
         self.param_box = QGroupBox("Parameters")
@@ -37,40 +50,66 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
         self.effect_layout.addWidget(self.param_box, stretch=1)
 
     def add_dial(self, name:str, val, min_val=0, max_val=100):
+		
         dial = QDial()
         dial.setRange(min_val, max_val)
         dial.setValue(val)
         dial.setNotchesVisible(True)
         dial.setWrapping(False)
-        dial.setFixedSize(80, 80)
+        dial.setFixedSize(200, 200)
         dial.setToolTip(name)
+        # dial.setAlignment(Qt.AlignVCenter)
 
         label = QLabel(name)
-        label.setAlignment(Qt.AlignCenter)
+        # label.setStyleSheet("font-size: 50px;")
+        label.setFont(CustomQFont("Regular", 32))
+        label.setAlignment(Qt.AlignVCenter)
 
         container = QWidget()
-        layout = QVBoxLayout()
-        layout.setSpacing(5)
-        layout.addWidget(dial)
+        layout = QHBoxLayout()
+        layout.setSpacing(50)
+        layout.addWidget(dial, alignment=Qt.AlignVCenter)
         layout.addWidget(label)
         container.setLayout(layout)
 
+        glow = QGraphicsDropShadowEffect()
+        glow.setBlurRadius(0)
+        glow.setOffset(0)
+        container.setGraphicsEffect(glow)
+
         self.param_box_layout.addWidget(container)
-        self.dials[name] = dial
+        self.dials[name] = {
+                "dial":dial,
+                "container":container,
+                "glow":glow
+                }
         return dial
 
     def highlight_dial(self, sel, adjusting=False):
-        for i, (name, dial) in enumerate(self.dials.items()):
+        for i, item in enumerate(self.dials.values()):
+            container = item["container"]
+            glow = item["glow"] 
+
             if i == sel:
                 if adjusting:
-                    dial.setStyleSheet("border: 3px solid #00ff00;")
+                    color = QColor(0, 255, 0, 180)
+                    blur = 40
+                    size = 110
                 else:
-                    dial.setStyleSheet("border: 3px solid #ffaa00;")
+                    color = QColor(255, 140, 180)
+                    blur = 25
+                    size = 100
             else:
-                dial.setStyleSheet("")
+                color = Qt.transparent
+                blur = 0
+                size = 90
+
+            glow.setColor(color)
+            glow.setBlurRadius(blur)
 
     def update_from_engine(self, params):
-        for name, dial in self.dials.items():
+        for name, item in self.dials.items():
+            dial = item["dial"]
             key = self.params_keys.get(name)
             if not key or key not in params:
                 continue
@@ -82,7 +121,7 @@ class EffectPanel(QWidget, metaclass=ABCWidgetMeta):
             dial_min = dial.minimum()
 
             scaled = (value - min_val) / (max_val - min_val)
-            dial_scaled = (dial_min + scaled) * (dial_max - dial_min)
+            dial_scaled = dial_min + scaled * (dial_max - dial_min)
 
             dial.blockSignals(True)
             dial.setValue(int(dial_scaled))

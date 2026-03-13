@@ -53,6 +53,7 @@ Engine::~Engine(){
     }
 
     if (outHandle){
+        snd_pcm_drain(outHandle);
         snd_pcm_close(outHandle);
         outHandle = nullptr;
     }
@@ -80,9 +81,11 @@ void Engine::start(){
 void Engine::stop(){
     // Join threads
     running.store(false);
-    peripheralThread.join();
+    if (peripheralThread.joinable())
+        peripheralThread.join();
     //guiThread.join();
-    audioThread.join();
+    if (audioThread.joinable())
+        audioThread.join();
     
     // Close periperhals
     closePeripherals();
@@ -106,8 +109,15 @@ void Engine::runPeripheralThread(void) {
 
 
 void Engine::runStreamLoop(){
-    while(running.load())
-    	stream(userData, audioParams, inHandle, outHandle, period, running);
+    struct pollfd pfds[2];
+    snd_pcm_poll_descriptors(inHandle, pfds, 1);
+    snd_pcm_poll_descriptors(outHandle, pfds + 1, 1);
+
+    while (running.load()) {
+        int ret = poll(pfds, 2, -1);
+        if (ret < 0) continue;
+        stream(userData, audioParams, inHandle, outHandle, period, running);
+    }
 }
 
 
@@ -497,9 +507,10 @@ void Engine::readButton(void) {
     if (peripheralData.ENCODER_PRESSED) {
         
         // Effect selection
-        if (menuMode == EFFECT_SELECTION_MODE && effectSelection != NO_EFFECT){
+        if (menuMode == EFFECT_SELECTION_MODE){
             updateEffectChoice();
-            menuMode = AUDIO_PARAM_SELECTION_MODE;
+            if (effectSelection != NO_EFFECT)
+                menuMode = AUDIO_PARAM_SELECTION_MODE;
         }
         
         // Effect parameter selection

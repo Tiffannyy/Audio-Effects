@@ -9,7 +9,7 @@
 
 import sys
 from .parameters import *
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget,
@@ -29,8 +29,7 @@ class Window(QMainWindow):
         super().__init__()
         self.engine = engine
 
-        # TODO: Customize font
-        self.sidebar_font = QFont("Arial", 18)
+        self.sidebar_font = CustomQFont("Regular", 32) #QFont("Arial", 18)
 
         self._add_dock()
         self._add_list()
@@ -53,6 +52,7 @@ class Window(QMainWindow):
     def _add_list(self):
         self.list_widget = QListWidget()
         self.list_widget.setFont(self.sidebar_font)
+        self.list_widget.setMinimumSize(300, 1000)
         items = ["Clean", "Tremolo", "Delay", "Reverb",
                  "Bitcrush", "Overdrive", "Distortion", "Fuzz"]
         self.list_widget.addItems(items)

@@ -2,8 +2,8 @@
  * types.h
  * DSP Program
  * 
- * Tiffany Liu, Nathaniel Kalaw
- * 24 February 2026
+ * Tiffany Liu
+ * 5 June 2025
  * 
  * Description: contains structs used in the program.
  * NOTE: Change AudioParams values to adjust audio effects
@@ -164,5 +164,4 @@ struct RtUserData {
 
 
 extern EffectChoices effectChoice;
-
 

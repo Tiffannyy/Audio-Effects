@@ -9,6 +9,7 @@
 */
 
 #include "../include/callback.h"
+#include <cstdio>
 
 // Overdrive function
 float applyOverdrive(float inputSample,
@@ -16,8 +17,8 @@ float applyOverdrive(float inputSample,
 		     float odFactor) {
 
     // Apply transfer characteristic
-    float intensityFactor = 1.0 / (odFactor*drive + 0.01f);
-    float normalizeFactor = 1.0 / (intensityFactor + 1.0f);
+    float intensityFactor = 1.0 / (odFactor*drive + 0.01);
+    float normalizeFactor = 1.0 / (intensityFactor + 1.0);
     float outputSample = (inputSample / (intensityFactor + std::fabs(inputSample)));
     outputSample /= normalizeFactor;
 
@@ -130,7 +131,8 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
 
             if (ud->params->TREM_PHASE >= 2.0 * M_PI) ud->params->TREM_PHASE -= 2.0 * M_PI;
         
-            monoOut = monoIn * trem; 
+            //monoOut = monoIn * trem; 
+            monoOut = (1.0f - params.mix) * monoIn + params.mix * monoIn * trem;
 
         }
         
@@ -223,6 +225,7 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
 
             // Apply mix amount
             monoOut = (1.0f - params.mix) * monoIn + params.mix * outputSample;
+            
         }
 
         // Distortion
@@ -257,7 +260,8 @@ void processBlock(const SAMPLE* in, SAMPLE* out,
             if (outputSample > 1.0f) outputSample = 1.0f;
             else if (outputSample < -1.0f) outputSample = -1.0f;
 
-            monoOut = outputSample;
+            // Apply mix amount
+            monoOut = (1.0f - params.mix) * monoIn + params.mix * outputSample;
         }
 
         else
